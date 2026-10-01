@@ -1,0 +1,16 @@
+[Unit]
+Description=ComfyUI (homidev asset engine)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=homidev
+Group=homidev
+WorkingDirectory=/home/homidev/ComfyUI
+ExecStart=/home/homidev/ComfyUI/venv/bin/python main.py --listen 0.0.0.0 --port 8188 --enable-manager
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+# asset-cleanup.timer - once a day (step 9f-3, v1.0, 1 Oct 2026)
+# Install: /etc/systemd/system/asset-cleanup.timer
+# Persistent=true: homidev is only on at night, so if 03:00 was missed it runs soon after the next boot.
+
+[Unit]
+Description=homidev: daily asset job clean-up
+
+[Timer]
+OnCalendar=*-*-* 03:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

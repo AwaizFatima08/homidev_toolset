@@ -1,0 +1,14 @@
+# asset-cleanup.service - run cleanup-jobs.sh once (step 9f-3, v1.0, 1 Oct 2026)
+# Install: /etc/systemd/system/asset-cleanup.service  (started by asset-cleanup.timer)
+# FIRST WEEK: dry run only (no --delete). Add --delete after Homi has checked the log.
+
+[Unit]
+Description=homidev: delete finished asset jobs older than 14 days
+
+[Service]
+Type=oneshot
+User=homidev
+Group=homidev
+ExecStart=/home/homidev/receiver/cleanup-jobs.sh
+NoNewPrivileges=true
+PrivateTmp=true
