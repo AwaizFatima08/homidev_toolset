@@ -100,7 +100,7 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
 - [x] Step 4: ComfyUI-Manager, BG removal, upscaler (30 Sep; all built-in, jobs sent from homi-nas via API)
 - [x] Step 5: manual end-to-end image test (30 Sep) — generate → package + manifest → pull → Stage 1 draft checks; licence gate rejected SDXL Turbo output for a commercial project as intended
   - [x] homi-nas: `~/ai-inbox/_tools/stage1-check.sh` (draft v0.1), `~/ai-inbox/test/<job-id>/`
-  - [ ] Clean up later: `~/ai-inbox/_test/` scratch files, homidev `~/assets/jobs/20260930-2303-test-image-01` (14-day rule)
+  - [ ] Clean up later: `~/ai-inbox/_test/` scratch files (homidev job `20260930-2303-test-image-01` deleted by hand 1 Oct; it had no status.json so the clean-up script would never remove it)
 - [x] Step 6: Kokoro + faster-whisper voice test (1 Oct)
 - [ ] Step 7: NVMe move
 - [ ] Step 8: commercial image model, Stable Audio Open, ACE-Step
@@ -109,8 +109,17 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
   - [x] 9b `~/assets/models.json` + recipe `test-image-cutout`; `/recipes` shows commercial_ok=no; unapproved recipe ignored
   - [x] 9c `POST /jobs` validation (1 Oct): receiver v0.3 (sha256 `9b3aeddd…d8b9`); 10/10 tests correct incl. licence gate; test script `~/ai-inbox/_tools/receiver-9c-tests.sh`
   - [x] 9d (1 Oct): receiver v0.4 (sha256 `6ff92624…46ae`) — first fully automatic image job `20261001-1050-test-image-01`: submit → running ~3 min (incl. SDXL Turbo load from HDD) → done → pulled → Stage 1 all checks pass; stage1-check.sh updated to v0.2 (request.json/status.json expected)
-  - [x] 9e (1 Oct): receiver v0.5 (sha256 `ed9ae0c1…86c0`), check.py v0.4, recipe `voice-en-standard` (WAV + OGG/Opus, trim 0.1 s, −16 LUFS, af_heart only). First voice job: ~60 s, 6.6 s clip, −16.2 LUFS, OGG 60 KB vs WAV 315 KB, whisper 100% with glossary, Stage 1 PASS **as commercial** (first asset through the licence gate). Stage 2 listening: pending Homi
-  - [ ] 9f systemd service + reboot + 14-day clean-up
+  - [x] 9e (1 Oct): receiver v0.5 (sha256 `ed9ae0c1…86c0`), check.py v0.4, recipe `voice-en-standard` (WAV + OGG/Opus, trim 0.1 s, −16 LUFS, af_heart only). First voice job: ~60 s, 6.6 s clip, −16.2 LUFS, OGG 60 KB vs WAV 315 KB, whisper 100% with glossary, Stage 1 PASS **as commercial** (first asset through the licence gate). Stage 2: **approved by Homi** (voice good) — **9e closed**
+  - [x] 9f systemd service + reboot + 14-day clean-up + one-command backup (plan F1–F4 approved 1 Oct)
+    - [x] 9f-1 (1 Oct): `asset-receiver.service` (sha256 `44733fb0…880e1`) enabled; `/health` from homi-nas OK; crash test: killed → back in 5 s with new PID
+    - [x] 9f-2 reboot test (no login) + one voice job under the service
+      - [x] Receiver up with nobody logged in (1 Oct). Cold-boot timing: reboot 19:57 → receiver 20:01 → ComfyUI ready 20:03 (~6 min total; ComfyUI start ~2.5 min from HDD, mostly loading PyTorch). Expect faster after the NVMe move
+      - [x] Voice job `20261001-2006-test-voice-01` under the service: ~60 s, Stage 1 PASS as commercial, whisper 100%, same size/loudness as the morning job (needed `chmod +x` on homi-nas `_tools/*.sh`)
+    - [x] 9f-3 daily 14-day clean-up (dry run first)
+      - [x] `~/receiver/cleanup-jobs.sh` v1.0 (sha256 `d2e96e6d…`): dry run OK (would delete 0); `--days 0` lists only finished jobs; delete test removed only a fake 2026-01-01 job
+      - [x] `asset-cleanup.timer` (daily 03:00, Persistent) enabled 1 Oct; first run logged: DRY RUN, would delete 0, kept 3
+      - [ ] ~15 Oct: check the log lists the 1 Oct jobs, then add `--delete` to `asset-cleanup.service` (decision pending Homi)
+    - [x] 9f-4 `homidev-backup.sh` v1.0 on homi-nas (sha256 `3aa2c18a…`; normal SSH login; Drive stays manual via Claude). First run 1 Oct: safety checks PASS, commit `cdd2c5a` pushed
 - [ ] Step 10: Claude Code side (request, pull with `mkdir -p` first, Stage 1 checks, review sheet)
 - [ ] Step 11: further recipes one at a time: image → voice → sfx → music
 

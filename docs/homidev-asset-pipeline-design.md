@@ -55,7 +55,7 @@
 |---|---|---|
 | Metadata (prompt, model, licence) into files | exiftool | ✅ |
 | JSON manifests | jq | ✅ |
-| Job receiver (submit/status) | `~/receiver/receiver.py` (FastAPI, port 8190, token) — v0.5: image + voice engines | ✅ manual start; service = step 9f |
+| Job receiver (submit/status) | `~/receiver/receiver.py` (FastAPI, port 8190, token) — v0.5: image + voice engines | ✅ systemd service `asset-receiver` (starts on boot, restarts on crash) — 9f, 1 Oct |
 
 ### 2.3a Add-on and model rules (agreed 30 Sep)
 - **ComfyUI-Manager:** built-in, switched on with `--enable-manager`; security level `normal` (never `weak`).
@@ -154,7 +154,7 @@ Move approved files to project `assets/`; add to `ASSET-REGISTER.md` (file, job 
    **Order change (Homi, 1 Oct):** step 9 (receiver) is built next, before steps 7–8, using test models; paths updated after the NVMe move. Receiver design: `receiver-design.md`.
 7. **NVMe move** (plan boot-partition issue first)
 8. Commercial-licence image model; Stable Audio Open (SFX); ACE-Step (music)
-9. 🟡 Receiver (design `receiver-design.md` v1.0). 9a–9e ✅ (1 Oct): health/token, recipes, validation, automatic image jobs, voice recipe `voice-en-standard` (first commercial-OK asset). 9f (service, reboot test, 14-day clean-up, config backup) pending. Recipe `app-icon-flat` after step 8
+9. ✅ Receiver (design `receiver-design.md` v1.0). 9a–9e ✅ (1 Oct): health/token, recipes, validation, automatic image jobs, voice recipe `voice-en-standard` (first commercial-OK asset). 9f ✅ (1 Oct): `asset-receiver` service + reboot test with no login (cold boot to ComfyUI ready ≈ 6 min from HDD); daily `asset-cleanup.timer` (14 days, by job-ID date, only done/failed jobs; **dry run until ~15 Oct**, then `--delete` on Homi's OK); `homidev-backup.sh` on homi-nas (copies homidev config + homi-nas tools into git, blocks token/keys/big files, asks before commit). Recipe `app-icon-flat` after step 8
 10. Claude Code side: request, pull, Stage 1 checks, review sheet
 11. Further recipes one at a time: image → voice → sfx → music; GIF only when first genuinely needed
 
