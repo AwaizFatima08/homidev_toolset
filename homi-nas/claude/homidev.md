@@ -9,7 +9,7 @@ Last updated: 1 Oct 2026. Full designs on homi-nas: `~/homidev_toolset/docs/homi
 - **Only available at night when Homi boots it into Debian.** Always check it is up first; never assume.
 
 ## Current status (important)
-- A **receiver** exists (v0.5, port 8190, token in `~/.config/asset-receiver/token`), but it is still started by hand and the Claude Code side (build step 10) is **not built or approved yet**.
+- A **receiver** exists (v0.5, port 8190, token in `~/.config/asset-receiver/token`), and it now runs as a service that starts on boot (`asset-receiver`), but the Claude Code side (build step 10) is **not built or approved yet**.
 - Approved recipes so far: `test-image-cutout` (SDXL Turbo = **non-commercial, tests only**) and `voice-en-standard` (Kokoro, commercial-OK).
 - So, until step 10 is approved: **do not request assets from homidev on your own.** When a project needs an asset, write the request (type, purpose, size/duration, style, glossary for voice, where it goes) into the project's task notes and tell Homi.
 - Never use SDXL Turbo output in a commercial project.
@@ -17,7 +17,7 @@ Last updated: 1 Oct 2026. Full designs on homi-nas: `~/homidev_toolset/docs/homi
 ## Services (LAN only; ComfyUI and Ollama have no authentication)
 | Service | Address | Notes |
 |---|---|---|
-| ComfyUI | `http://192.168.100.123:8188` | `/system_stats` = health check. Needs ~70 s after boot; retry up to ~3 min |
+| ComfyUI | `http://192.168.100.123:8188` | `/system_stats` = health check. After a cold boot it needs **~6 min** (Debian ~3.5 min + ComfyUI ~2.5 min from the HDD); retry up to ~8 min |
 | Ollama | `http://192.168.100.123:11434` | gpt-oss:20b; first load ~8.5 min from HDD |
 | Receiver | `http://192.168.100.123:8190` | needs header `X-Receiver-Token`; `/health`, `/recipes`, `POST /jobs`, `/jobs/<id>` |
 
