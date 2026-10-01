@@ -1,0 +1,10 @@
+*.token
+token
+*.key
+id_*
+*.safetensors
+*.pth
+*.pt
+venv/
+__pycache__/
+jobs/

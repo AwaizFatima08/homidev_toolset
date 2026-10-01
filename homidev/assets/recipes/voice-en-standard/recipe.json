@@ -1,0 +1,23 @@
+{
+  "name": "voice-en-standard",
+  "version": "0.1",
+  "asset_type": "voice",
+  "engine": "kokoro",
+  "models": ["kokoro-82m", "kokoro-voice-af_heart", "whisper-small-en"],
+  "inputs": {
+    "script":   { "required": true,  "max_length": 1000 },
+    "glossary": { "required": false, "max_length": 300, "default": "" },
+    "voice":    { "required": false, "choices": ["af_heart"], "default": "af_heart" }
+  },
+  "outputs": ["voice"],
+  "settings": {
+    "trim_silence_keep_s": 0.1,
+    "loudness_lufs": -16,
+    "true_peak_db": -1.5,
+    "formats": ["wav (master, 24 kHz mono 16-bit)", "ogg (Opus 64 kbps, for apps)"],
+    "script_check": "faster-whisper small.en, PASS at >= 90% word match; FLAG does not fail the job"
+  },
+  "approved_by": "Homi",
+  "approved_date": "2026-10-01",
+  "notes": "English voice-overs. Only voices listed in 'choices' are allowed; new voices need Homi's listening approval. Every voice-over is human-reviewed (Stage 2)."
+}

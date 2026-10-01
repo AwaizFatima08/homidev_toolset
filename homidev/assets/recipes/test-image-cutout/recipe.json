@@ -1,0 +1,16 @@
+{
+  "name": "test-image-cutout",
+  "version": "0.1",
+  "asset_type": "image",
+  "engine": "comfyui",
+  "models": ["sdxl-turbo", "birefnet"],
+  "inputs": {
+    "prompt":          { "required": true,  "max_length": 500 },
+    "negative_prompt": { "required": false, "max_length": 300, "default": "text, watermark, blurry, shadow" },
+    "seed":            { "required": false, "type": "int" }
+  },
+  "outputs": ["raw", "cutout"],
+  "approved_by": "Homi",
+  "approved_date": "2026-10-01",
+  "notes": "TEST ONLY - uses SDXL Turbo (non-commercial). 512x512, 1 step. Background removal: RemoveBackground > InvertMask > JoinImageWithAlpha."
+}
