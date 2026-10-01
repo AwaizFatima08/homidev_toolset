@@ -1,6 +1,6 @@
 # homidev — asset engine (read by Claude Code on homi-nas)
 
-Last updated: 1 Oct 2026. Full design: `homidev-asset-pipeline-design.md` v1.1 (LOCKED); receiver: `receiver-design.md` v1.0.
+Last updated: 1 Oct 2026. Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED) and `~/homidev_toolset/docs/receiver-design.md` (v1.0).
 
 ## What it is
 - Separate GPU machine on the LAN: `192.168.100.123`, user `homidev`. RTX 5060 Ti 16 GB, 16 GB RAM.
