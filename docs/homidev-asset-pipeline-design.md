@@ -152,7 +152,14 @@ Move approved files to project `assets/`; add to `ASSET-REGISTER.md` (file, job 
    Findings: (a) combined models → **strictest licence wins** for `commercial_ok`; (b) Stage 1 can pass an image that misses the brief (SDXL Turbo made a pattern, not one centred apple) → Stage 2 and Claude's visual check are essential; (c) recipe `app-icon-flat` needs "single isolated object, empty space around" in the prompt and a **subject-touches-edge** check.
 6. ✅ Kokoro TTS + faster-whisper, manual voice test (1 Oct): 6 s clip made on CPU in ~8 s; whisper check in 2.4 s; 100% match with glossary. **Voice requests must carry a `glossary`** (app/brand/medical names) — without it, made-up names drop the score (85%) and trigger false flags. Scripts: `~/voice/say.py`, `~/voice/check.py` (see voice-scripts.md).
    **Order change (Homi, 1 Oct):** step 9 (receiver) is built next, before steps 7–8, using test models; paths updated after the NVMe move. Receiver design: `receiver-design.md`.
-7. **NVMe move** (plan boot-partition issue first)
+7. ✅ **NVMe move** (done 5 Oct: boots from the 970 in 16.8 s, voice job ~20 s instead of ~60 s; tidy-up of boot entries pending) — decisions locked 5 Oct (Homi):
+   - S1 Drive: Samsung 970 EVO Plus 2 TB (serial `S6S2NS0TB11541M`, bought used, self-test passed, erased 5 Oct). Always addressed by `/dev/disk/by-id/…`, never by `nvme0/1`.
+   - S2 Layout, in this order: **EFI 1 GiB** · **swap 32 GiB** · **system ~1 TB** (Debian + models, ext4) · **~830 GiB left unallocated** (later: storage / working files / assets). Free space sits right after the system partition so the system can be grown into it.
+   - S3 Move = **file copy (rsync) of the running Toshiba Debian** onto the system partition, then GRUB on the 970's own EFI → Debian no longer depends on the Windows drive. Nothing reinstalled.
+   - S4 Toshiba stays connected and untouched as fallback for some time after the move.
+   - S5 The 2× 512 GB NVMe (on order) stay unplugged until a real use is planned.
+   - S6 Backup disk decided later (a free 1 TB SATA disk or the 8 TB, after physical rearrangement).
+   - S7 Role: homidev is a **workhorse only**; all projects live on homi-nas.
 8. Commercial-licence image model; Stable Audio Open (SFX); ACE-Step (music)
 9. ✅ Receiver (design `receiver-design.md` v1.0). 9a–9e ✅ (1 Oct): health/token, recipes, validation, automatic image jobs, voice recipe `voice-en-standard` (first commercial-OK asset). 9f ✅ (1 Oct): `asset-receiver` service + reboot test with no login (cold boot to ComfyUI ready ≈ 6 min from HDD); daily `asset-cleanup.timer` (14 days, by job-ID date, only done/failed jobs; **dry run until ~15 Oct**, then `--delete` on Homi's OK); `homidev-backup.sh` on homi-nas (copies homidev config + homi-nas tools into git, blocks token/keys/big files, asks before commit). Recipe `app-icon-flat` after step 8
 10. Claude Code side: request, pull, Stage 1 checks, review sheet

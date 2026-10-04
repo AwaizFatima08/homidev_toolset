@@ -1,6 +1,6 @@
 # homidev — asset engine (read by Claude Code on homi-nas)
 
-Last updated: 1 Oct 2026. Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED) and `~/homidev_toolset/docs/receiver-design.md` (v1.0).
+Last updated: 5 Oct 2026. Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED) and `~/homidev_toolset/docs/receiver-design.md` (v1.0).
 
 ## What it is
 - Separate GPU machine on the LAN: `192.168.100.123`, user `homidev`. RTX 5060 Ti 16 GB, 16 GB RAM.
@@ -17,8 +17,8 @@ Last updated: 1 Oct 2026. Full designs on homi-nas: `~/homidev_toolset/docs/homi
 ## Services (LAN only; ComfyUI and Ollama have no authentication)
 | Service | Address | Notes |
 |---|---|---|
-| ComfyUI | `http://192.168.100.123:8188` | `/system_stats` = health check. After a cold boot it needs **~6 min** (Debian ~3.5 min + ComfyUI ~2.5 min from the HDD); retry up to ~8 min |
-| Ollama | `http://192.168.100.123:11434` | gpt-oss:20b; first load ~8.5 min from HDD |
+| ComfyUI | `http://192.168.100.123:8188` | `/system_stats` = health check. Debian now runs from NVMe (since 5 Oct) and boots in ~20 s; give ComfyUI ~1–2 min after boot and retry for up to ~5 min |
+| Ollama | `http://192.168.100.123:11434` | gpt-oss:20b; first load took ~8.5 min from the old HDD, now on NVMe (new time not yet measured) |
 | Receiver | `http://192.168.100.123:8190` | needs header `X-Receiver-Token`; `/health`, `/recipes`, `POST /jobs`, `/jobs/<id>` |
 
 ## Pulling finished files (works now)

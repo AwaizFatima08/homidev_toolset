@@ -71,15 +71,53 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
 
 ## E. Storage and the NVMe move (build step 7)
 
-- [x] Debian's boot files are **on the Windows NVMe (`nvme0n1p1`)**, not on `sde`. Cloning `sde` alone will NOT be enough
-- [x] Swap: 15 GB partition on the Toshiba HDD (`/dev/sde2`), fine for now
-- [ ] Decide move method: clone + create own EFI partition, or fresh install with its own EFI
-- [ ] Check the Z690 manual's M.2/SATA lane-sharing table
-- [ ] Buy NVMes (consider 1 TB for the models drive); confirm ≥ 465.8 GB for the OS drive
-- [ ] Move OS to NVMe #1, boot from it, then retire the Toshiba
-- [ ] NVMe #2 mounted for models (fstab by UUID + `nofail`)
+**Rule (4 Oct):** disk names (`nvme0`, `sde` …) change between boots — they already swapped once. Always identify disks by **model + serial**, never by name. Old notes below that use names are history only.
+
+Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
+| Disk | Model / serial | Size | Role |
+|---|---|---|---|
+| NVMe (PCIe 4.0 x4) | WD Blue SN5000 1TB / `25274W802782` | 1 TB | **Windows (Hadi) — never touch.** Also holds Debian's EFI boot files today |
+| NVMe in **M2_2** (PCIe 3.0 x4, full speed for this drive) | Samsung 970 EVO Plus 2TB / `S6S2NS0TB11541M` | 2 TB | **NEW, empty** (installed 4 Oct) |
+| SATA | TOSHIBA MQ01ABD050 / `68A4S60IS` | 500 GB | current Debian OS disk (was `sde`, now `sdc`) — to confirm |
+| SATA | Seagate ST500LT012 / `W0V17ATZ` | 500 GB | ? |
+| SATA | WD WD10JPVX / `WD-WXC1A75K7XA4` | 1 TB | ? |
+| SATA | WD WD10SPZX / `WD-WXT1A8838CCS` | 1 TB | ? |
+| SATA | HGST HTS541010A9E680 / `160812JD10424A16BV4T` | 1 TB | ? |
+
+- [x] Debian's boot files are on the **Windows NVMe (WD SN5000)**, not on the Toshiba. Cloning the Toshiba alone will NOT be enough
+- [x] Swap: 15 GB partition on the Toshiba HDD, fine for now
+- [x] 2 TB NVMe installed in M2_2 (4 Oct); all 5 SATA disks still visible after install
+- [x] 2 TB NVMe health check (4 Oct): critical warning 0, media errors 0, 1% used, 28 °C, firmware 4B2QEXM7 — **but NOT unused: 2,268 power-on hours, 14.5 TB written** (rated ~1,200 TB, so ~1% of its life). Healthy. Bought used from a trusted vendor (Homi, 4 Oct) — readings match a lightly used drive
+- [x] 2 TB NVMe extended self-test: **Completed without error** (at 2,268 h)
+- [x] 2 TB NVMe erased 5 Oct (`blkdiscard` via by-id path, approved by Homi): previous owner's Windows install gone, drive blank; WD (Windows) and all SATA disks unchanged
+- Found 5 Oct: the Toshiba (Debian) has its **own** 487 MB vfat partition (UUID `7139-3D42`) — **unused**: fstab mounts `/boot/efi` from `DCC3-636B` on the WD (Windows) drive
+- Numbers 5 Oct (before the move): Debian root 53 GB used of 443 GB; ComfyUI models 7 GB, Ollama 14 GB, Hugging Face cache 1.7 GB → 1 TB system partition is ample
+- fstab today: `/` = UUID `b91d7e5b…`, `/boot/efi` = `DCC3-636B` (WD drive), swap = UUID `4db75810…` (Toshiba) — all three change in 7b
+- Firmware boot entries 5 Oct: 0000 Windows (WD) · 0002 debian (on WD's EFI, currently used) · **0003 stale** "Windows Boot Manager" pointing at the 970's erased old EFI → remove in 7c; BootOrder lists Windows first — set new debian entry first in 7c
+- Found 5 Oct: the other 4 SATA disks hold NTFS data (labels HGST1/HGST2, Transcend, Epic, "Toshiba" on the Seagate) — find out whose data before planning any of them as archive
+- Lesson 4–5 Oct: after a reboot the NVMe names swapped again (970 = nvme0 → nvme1); one self-test ran on the WD by mistake (read-only, harmless). All commands now use `/dev/disk/by-id/…<serial>`; controller derived with `readlink -f`
+- [ ] 2× 512 GB NVMe on order (4 Oct) — purpose to decide; with them all 4 M.2 slots are full. Check every disk is still visible after installing them (M2_3 / M2_4 can also run SATA mode)
+- [x] Layout + move method decided 5 Oct — see design doc step 7 (S1–S7): EFI 1 GiB + swap 32 GiB + system ~1 TB + ~830 GiB unallocated; rsync copy of the Toshiba; own EFI on the 970
+- [x] 7a (5 Oct): partitions on the 970 — p1 1 GiB EF00 `homidev-efi` (vfat, label HD-EFI) · p2 32 GiB 8200 `homidev-swap` (UUID `9261597b-9c91-4115-87af-97d441c9eb0b`) · p3 1000 GiB 8300 `homidev-system` (ext4, label hd-system, UUID `e774525b-0f05-43cb-bd98-a6930e1d08e3`) · 830 GiB free after p3
+- How homidev boots (Homi, 5 Oct): default = **Windows**; Debian is chosen by pressing **F11** at start (boot menu). Debian runs at night; Hadi reboots into Debian when he finishes. → After a power cut homidev comes up in Windows (receiver unavailable) — known limitation
+- [x] 7b copy Debian + bootloader — plan P1–P5 approved 5 Oct (stop services · rsync copy · new IDs in fstab + resume in the copy only · GRUB on the 970's EFI + new boot entry `debian-nvme` · nothing else changes)
+  - [x] 7b-1 (5 Oct): services stopped, rsync copy 55.3 GB in 27 min (Toshiba reads ~32 MB/s), exit 0, services restarted; both sides 53G
+  - [x] 7b-2 (5 Oct): copy's fstab → system `e774525b…`, EFI `3109-7BAD`, swap `9261597b…`; `resume` → `9261597b…`; backups in the copy's `/root/before-nvme/` (NOT in conf.d — initramfs reads every file there); running system's fstab untouched
+  - [x] 7b-3a (5 Oct): chroot → `grub-install --no-nvram` (shim/grub/mm on the 970's EFI, "No error reported"), initramfs rebuilt, `update-grub` (system ID ×12; Toshiba Debian added as extra menu choice)
+  - [x] 7b-3b (5 Oct): firmware entry **Boot0001 `debian-nvme`** → 970 EFI `\EFI\debian\shimx64.efi`; BootOrder kept 0000,0002,0003,0001 (Windows still default)
+  - [x] 7b-3c (5 Oct): copy unmounted cleanly; running system + services OK
+- [ ] 7c boot from the 970, test everything (services, receiver, voice + image job), BIOS boot order
+  - [x] 5 Oct: first start via F11 → `debian-nvme`: `/` = nvme…p3 hd-system, `/boot/efi` = nvme…p1 HD-EFI, root=UUID `e774525b…`, SecureBoot enabled, NVIDIA 615.71.09 sees RTX 5060 Ti, all 4 services active, no failed units. **Boot 16.8 s** (kernel 7.8 + userspace 9.0) vs ~3.5 min from the Toshiba
+  - [x] swap = nvme1n1p2 32 GB (Toshiba swap no longer used); voice job `20261005-0010-test-voice-01` from homi-nas: **~20 s** (was ~60 s from the HDD), Stage 1 PASS as commercial, whisper 100%, −16.2 LUFS; receiver reports 945.7 GB free
+  - [ ] later: decide the old `debian` entry, tell Hadi which entry to pick
+  - ⚠️ 5 Oct mistake (Claude's instruction): `efibootmgr -b 0003 -B` deleted the **debian-nvme** entry, not the stale one — after the reboot the firmware had removed the stale entry itself and renumbered debian-nvme to 0003 (BootCurrent: 0003). Boot files on the 970 untouched. **Rule: always list `efibootmgr` first and pick entries by label + partition, never by a number from an earlier session**
+  - [x] 5 Oct: `debian-nvme` recreated as Boot0001 (partition `bf99bf22…`, 0x200000 = the 970's 1 GiB EFI); BootOrder 0000,0002,0001 — Windows still default. Note: this MSI firmware renumbers entries on reboot, so in F11 always go by the **name**
+  - Recovery recipe if `debian-nvme` ever vanishes from F11: boot the old `debian` (Toshiba, while it is still connected) and re-run the 7b-3b commands
+  - [ ] proposal: add a fallback loader on the 970 (`\EFI\BOOT\BOOTX64.EFI`) so it can boot even if the menu entry is lost
+- [ ] Move OS to NVMe, boot from it, then retire the Toshiba
+- [ ] Models on NVMe (fstab by UUID + `nofail`)
 - [ ] Swap on NVMe (16–32 GB); retire the HDD swap
-- [ ] 8 TB Purple mounted as archive (outputs, old models)
+- 8 TB Purple: **dropped for now** (4 Oct) — 3.5" disk hard to fit; the 2.5" SATA disks can serve as archive if needed
 - [ ] Commercial-licence image model (build step 8)
 
 ## F. Network (after the revamp)
