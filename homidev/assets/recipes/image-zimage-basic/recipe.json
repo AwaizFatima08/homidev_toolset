@@ -1,0 +1,15 @@
+{
+  "name": "image-zimage-basic",
+  "version": "1.0",
+  "asset_type": "image",
+  "engine": "comfyui",
+  "models": ["z-image-turbo-int8", "qwen3-4b-fp8-text-encoder", "z-image-vae"],
+  "inputs": {
+    "prompt": { "required": true,  "max_length": 1000 },
+    "seed":   { "required": false, "type": "int" }
+  },
+  "outputs": ["raw"],
+  "approved_by": "Homi",
+  "approved_date": "2026-10-05",
+  "notes": "Z-Image-Turbo (Apache 2.0), 1024x1024, no background removal. Settings as tested in 8a-4: CLIPLoader lumina2, ModelSamplingAuraFlow shift 3, 9 steps, cfg 1, res_multistep/simple. No negative prompt: ignored at cfg 1 (ConditioningZeroOut)."
+}

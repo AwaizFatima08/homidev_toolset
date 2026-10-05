@@ -120,14 +120,15 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
 - [ ] Models on NVMe (fstab by UUID + `nofail`)
 - [ ] Swap on NVMe (16–32 GB); retire the HDD swap
 - 8 TB Purple: **dropped for now** (4 Oct) — 3.5" disk hard to fit; the 2.5" SATA disks can serve as archive if needed
-- [ ] Commercial-licence image model (build step 8a) — see `homidev-step8a-image-model-comparison.md`; D1–D6 locked 5 Oct: **Z-Image-Turbo** (int8 + fp8 text encoder + VAE, Comfy-Org, Apache 2.0)
+- [x] Commercial-licence image model (build step 8a, **closed 5 Oct**) — see `homidev-step8a-image-model-comparison.md`; D1–D6 locked 5 Oct: **Z-Image-Turbo** (int8 + fp8 text encoder + VAE, Comfy-Org, Apache 2.0)
   - [x] 8a-1 (5 Oct): pre-checks — ComfyUI 0.37.0 already supports Z-Image + int8 "convrot"; 880 GB free; 11 GiB RAM available; GPU idle
   - [x] 8a-2 (5 Oct): downloaded into `~/model-review/z-image-turbo/` (revision `6fc90a3b…df5`, licence apache-2.0 recorded); all 3 sha256 OK against Hugging Face; ~43 min
   - [x] 8a-3 (5 Oct): MODEL-REGISTER (sha256 `29e1905a…3cde`) + models.json (sha256 `78bf2d4e…cb9f`) updated, backups `*.bak-20261005`; blocked: FLUX.2 klein 9B, FLUX.2 dev, FLUX.1 dev; 3 files moved into `~/ComfyUI/models/`, sha256 re-checked OK in place
   - [x] 8a-4 (5 Oct): first Z-Image image via ComfyUI API from homi-nas (`~/ai-inbox/_test/8a4/`, job `20261005-1649-test-image-01`): **31 s incl. first model load**, 1024×1024 PNG, int8 loads fine; settings: CLIPLoader `lumina2`, AuraFlow shift 3, 9 steps, cfg 1, `res_multistep`/`simple`. Visual check PASS (one centred flat apple, no text/shadow) + Homi Stage 2 OK. Finding: faint off-white rounded-square "icon tile" in the background → `app-icon-flat` recipe needs background removal and "no frame, no border" in the prompt
   - Receiver re-reads models.json and recipes on every request (`load_recipes()`), so no restart is needed after register changes (read in code, 5 Oct)
   - [x] 8a-5 (5 Oct): receiver **v0.6** (sha256 `0b3be3ff…3b3e`, backup `receiver.py.bak-20261005` = v0.5): before every ComfyUI job, unloads all Ollama models (waits ≤ 30 s, job fails if one stays); recorded as `ollama_unloaded` in status.json. Tests: (a) Gemma loaded → unloaded, job done ✅ (b) nothing loaded → `[]`, done ✅ (c) voice job unaffected, whisper 1.0 PASS ✅ (d) restart + /health v0.6 ✅. Known limitation (accepted): a chat started *during* an image job can still load a model
-  - [ ] 8a-6 5-prompt quality test, Stage 1 + Stage 2 → 8a closed
+  - [x] 8a-6 (5 Oct): recipe **`image-zimage-basic` v1.0** (Z1–Z7: 3 Z-Image models, inputs prompt+seed, no negative prompt, 1024×1024, output `raw`) → receiver: commercial_ok = yes (first commercial-OK image recipe). 5-prompt test (T1–T4, seeds 1001–1005) through the full pipeline from homi-nas: submit → receiver → pull with read-only key → stage1-check.sh: **5/5 PASS, 10–12 s each**; Homi Stage 2: approve all
+  - Findings 8a-6: (1) people default to East Asian — recipes with people must name the audience (e.g. "Pakistani family, modest clothing"); (2) icons came out as line-art and the faint icon tile remains — icon recipes need "solid filled shapes" + background removal; (3) text rendering excellent ("LiveHealthy" spelled perfectly); (4) plain gradients show slight banding — make gradients in app code, not AI
   - Lesson 5 Oct: a wrong (old) `models.json` arrived by download under the right name; the fingerprint check caught it. **Rules: check-and-install commands are always chained with `&&` so a failed check stops the copy; small config files can be written on homidev with a heredoc and checked by sha256**
 
 ## F. Network (after the revamp)
@@ -151,7 +152,7 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
   - [ ] Clean up later: `~/ai-inbox/_test/` scratch files (homidev job `20260930-2303-test-image-01` deleted by hand 1 Oct; it had no status.json so the clean-up script would never remove it)
 - [x] Step 6: Kokoro + faster-whisper voice test (1 Oct)
 - [x] Step 7: NVMe move (5 Oct; boot-entry tidy-up pending, see E)
-- [ ] Step 8: commercial image model (8a in progress, see E), Stable Audio Open, ACE-Step
+- [ ] Step 8: commercial image model (**8a closed 5 Oct**, see E), Stable Audio Open (8b), ACE-Step (8c)
 - [ ] Step 9: receiver (design `receiver-design.md` v1.0, approved 1 Oct; built before NVMe by Homi's decision)
   - [x] 9a env `~/receiver/venv` (FastAPI+uvicorn), token `~/.config/asset-receiver/token` on both machines, `/health` 200 with token / 401 without
   - [x] 9b `~/assets/models.json` + recipe `test-image-cutout`; `/recipes` shows commercial_ok=no; unapproved recipe ignored
