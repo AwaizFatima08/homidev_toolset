@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-01",
+  "updated": "2026-10-05",
   "note": "Machine copy of MODEL-REGISTER.md. Always update both together. File paths are relative to /home/homidev.",
   "models": {
     "sdxl-turbo": {
@@ -7,6 +7,24 @@
       "licence": "Stability AI Non-Commercial Research Community Licence",
       "commercial_ok": "no",
       "sha256": "e869ac7d6942cb327d68d5ed83a40447aadf20e0c3358d98b2cc9e270db0da26"
+    },
+    "z-image-turbo-int8": {
+      "file": "ComfyUI/models/diffusion_models/z_image_turbo_int8_convrot.safetensors",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "be517ebd47c912a5626a588e1aeea43e6be4a43c0cdcd2b48a2a780d9f358635"
+    },
+    "qwen3-4b-fp8-text-encoder": {
+      "file": "ComfyUI/models/text_encoders/qwen_3_4b_fp8_mixed.safetensors",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "72450b19758172c5a7273cf7de729d1c17e7f434a104a00167624cba94f68f15"
+    },
+    "z-image-vae": {
+      "file": "ComfyUI/models/vae/ae.safetensors",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
     },
     "birefnet": {
       "file": "ComfyUI/models/background_removal/birefnet.safetensors",
