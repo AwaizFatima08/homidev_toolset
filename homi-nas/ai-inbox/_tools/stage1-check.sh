@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-# stage1-check.sh <job-folder> <commercial-project: yes|no>   (DRAFT v0.2, 1 Oct 2026)
+# stage1-check.sh <job-folder> <commercial-project: yes|no>   (v0.4, 5 Oct 2026)
+# v0.4 (K1): clips < 5 s: loudness within -16 +/- 3 but outside +/- 1 = WARN (loudness is unreliable on very short clips); >= 5 s stays strict
 # Lives on homi-nas at ~/ai-inbox/_tools/stage1-check.sh
+# v0.3 (step 10b, G1-G6): audio checks measured here with ffmpeg (length > 0.5 s, loudness -16 +/- 1 LUFS,
+#       true peak <= -1 dB, <= 0.5 s silence at start and end); whisper mismatch = WARN (Homi decides);
+#       result PASS / PASS with warnings / FAIL. Pure checker: never moves or changes files.
 # v0.2: receiver bookkeeping files (request.json, status.json) are expected, not "unlisted";
 #       status.json must say "done"; list/dict fields printed on one line.
-# Known gaps (to add in build step 10): subject-touches-edge check, Claude visual review,
-# audio checks, automatic move of rejected jobs to ~/ai-inbox/_rejected/ with reason.
+# Known gaps: subject-touches-edge check, Claude visual review (done by Claude Code, step 10e).
 set -u
 DIR="$1"; COMM="${2:-yes}"
 cd "$DIR" || { echo "no such folder: $DIR"; exit 2; }
-FAIL=0
+FAIL=0; WARN=0
 ok(){ echo "  PASS  $1"; }
 bad(){ echo "  FAIL  $1"; FAIL=1; }
+warn(){ echo "  WARN  $1"; WARN=$((WARN+1)); }
 echo "Stage 1 checks: $(basename "$DIR")   (commercial project: $COMM)"
-if [ -f manifest.json ] && jq empty manifest.json 2>/dev/null; then ok "manifest.json present and valid"; else bad "manifest missing or invalid"; exit 1; fi
+if [ -f manifest.json ] && jq empty manifest.json 2>/dev/null; then ok "manifest.json present and valid"; else bad "manifest missing or invalid"; echo "RESULT: FAIL"; exit 1; fi
 for k in job_id project asset_type model model_licence commercial_ok created_at; do
   v=$(jq -c ".$k // empty" manifest.json | tr -d '"'); [ -n "$v" ] && ok "field $k = $v" || bad "field $k missing"
 done
@@ -30,7 +34,39 @@ extra=$(comm -23 <(ls | grep -v -x -E 'manifest.json|request.json|status.json' |
 for c in $(jq -r '.files[].name' manifest.json | grep _cutout); do
   file -b "$c" | grep -q RGBA && ok "$c has transparency" || bad "$c has NO transparency"
 done
+
+# ---- audio (G1): measured here, not copied from the manifest
+for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(wav|ogg|mp3)$'); do
+  [ -f "$a" ] || continue
+  if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then bad "$a: ffmpeg/ffprobe not installed on this machine"; continue; fi
+  dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$a")
+  awk -v d="$dur" 'BEGIN{exit !(d>0.5)}' && ok "$a length ${dur}s" || bad "$a too short (${dur:-?}s)"
+  meter=$(ffmpeg -nostdin -hide_banner -i "$a" -af ebur128=peak=true -f null - 2>&1)
+  lufs=$(echo "$meter" | grep -oP 'I:\s+\K-?[0-9.]+(?= LUFS)' | tail -n1)
+  peak=$(echo "$meter" | grep -oP 'Peak:\s+\K(-?[0-9.]+|-inf)(?= dBFS)' | tail -n1)
+  if awk -v l="$lufs" 'BEGIN{exit !(l!="" && l>=-17 && l<=-15)}'; then ok "$a loudness $lufs LUFS"
+  elif awk -v l="$lufs" -v d="$dur" 'BEGIN{exit !(l!="" && d<5 && l>=-19 && l<=-13)}'; then warn "$a loudness $lufs LUFS (short clip ${dur}s: outside -16 +/- 1, within +/- 3 -> listen)"
+  else bad "$a loudness ${lufs:-?} LUFS (target -16 +/- 1; short clips +/- 3)"; fi
+  awk -v p="$peak" 'BEGIN{exit !(p=="-inf" || (p!="" && p<=-1.0))}' && ok "$a true peak $peak dBFS" || bad "$a true peak ${peak:-?} dBFS (limit -1)"
+  sd=$(ffmpeg -nostdin -hide_banner -i "$a" -af silencedetect=noise=-50dB:d=0.5 -f null - 2>&1)
+  lead=$(echo "$sd" | grep -oP 'silence_start: \K-?[0-9.]+' | head -n1)
+  last=$(echo "$sd" | grep -oP 'silence_(start|end)' | tail -n1)
+  lend=$(echo "$sd" | grep -oP 'silence_end: \K[0-9.]+' | tail -n1)
+  if [ -n "$lead" ] && awk -v s="$lead" 'BEGIN{exit !(s<0.05)}'; then bad "$a starts with >= 0.5 s of silence"; else ok "$a no long silence at start"; fi
+  if [ "$last" = "silence_start" ] || { [ -n "$lend" ] && awk -v e="$lend" -v d="$dur" 'BEGIN{exit !(d-e<0.05)}'; }; then bad "$a ends with >= 0.5 s of silence"; else ok "$a no long silence at end"; fi
+done
+
+# ---- voice script check (G2): mismatch is a warning for Homi, not a failure
+if [ "$(jq -r .asset_type manifest.json)" = "voice" ]; then
+  r=$(jq -r '.script_check.result // empty' manifest.json)
+  if [ "$r" = "PASS" ]; then ok "whisper heard the script (match $(jq -r .script_check.match manifest.json))"
+  elif [ -z "$r" ]; then warn "no whisper script check in manifest"
+  else warn "whisper mismatch (match $(jq -r .script_check.match manifest.json)): heard \"$(jq -r .script_check.heard manifest.json)\""; fi
+fi
+
 LIC=$(jq -r .commercial_ok manifest.json)
 if [ "$COMM" = "yes" ] && [ "$LIC" != "yes" ]; then bad "LICENCE GATE: commercial project, but commercial_ok = $LIC"; else ok "licence gate"; fi
-[ $FAIL -eq 0 ] && echo "RESULT: PASS -> ready for Stage 2 (human review)" || echo "RESULT: FAIL"
+if [ $FAIL -ne 0 ]; then echo "RESULT: FAIL"
+elif [ $WARN -gt 0 ]; then echo "RESULT: PASS with $WARN warning(s) -> Stage 2 (human review), see WARN lines"
+else echo "RESULT: PASS -> ready for Stage 2 (human review)"; fi
 exit $FAIL

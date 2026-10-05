@@ -1,5 +1,6 @@
 #!/bin/bash
-# asset-job.sh v1.0 (5 Oct 2026) — step 10a: request one asset from homidev
+# asset-job.sh v1.1 (5 Oct 2026) — step 10b: Stage 1 FAIL -> job moved to ~/ai-inbox/_rejected/<job>/ + reason.txt
+# v1.0 (5 Oct 2026) — step 10a: request one asset from homidev
 # Usage: asset-job.sh <project> <recipe> <commercial: yes|no> <inputs.json>
 # submit -> wait -> pull (read-only key) -> stage1-check.sh. Last line: RESULT: PASS <folder> | RESULT: FAIL <reason>
 # Exit: 0 pass · 1 Stage 1 failed · 2 job failed on homidev / pull failed · 3 refused or receiver unreachable
@@ -51,5 +52,14 @@ DEST="$HOME/ai-inbox/$PROJECT/$J"
 mkdir -p "$DEST" && \
 rsync -a -e "ssh -i $HOME/.ssh/homidev_pull -o BatchMode=yes" "homidev@$H:$J/" "$DEST/" || end 2 "FAIL pull of $J"
 
-"$TOOLS/stage1-check.sh" "$DEST" "$COMM" || end 1 "FAIL Stage 1 $DEST"
+OUT=$("$TOOLS/stage1-check.sh" "$DEST" "$COMM"); RC=$?
+echo "$OUT"
+if [ "$RC" -ne 0 ]; then
+  REJ="$HOME/ai-inbox/_rejected/$J"
+  [ -e "$REJ" ] && end 1 "FAIL Stage 1 $DEST (not moved: $REJ already exists)"
+  mkdir -p "$HOME/ai-inbox/_rejected" && mv "$DEST" "$REJ" && \
+  { echo "rejected: $(date -Is) by Stage 1 (stage1-check.sh), commercial project: $COMM"; echo "$OUT" | grep -E '^  FAIL'; } > "$REJ/reason.txt"
+  end 1 "FAIL Stage 1 -> moved to $REJ (see reason.txt)"
+fi
+echo "$OUT" | grep -q '^  WARN' && end 0 "PASS with warnings $DEST"
 end 0 "PASS $DEST"
