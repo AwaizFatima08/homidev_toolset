@@ -1,4 +1,5 @@
 # receiver.py - homidev asset receiver
+# v0.6 (5 Oct 2026) - step 8a-5: unload Ollama models before every ComfyUI job (D6)
 # v0.5 (2 Oct 2026) - step 9e: + voice engine (Kokoro -> trim/loudness -> WAV+OGG -> whisper check)
 # v0.4 - step 9d: real jobs for ComfyUI recipes
 #   POST /jobs validates -> creates ~/assets/jobs/<id>/ -> queue (one job at a time)
@@ -26,7 +27,7 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-VERSION = "0.5"
+VERSION = "0.6"
 HOME = Path.home()
 ASSETS = HOME / "assets"
 JOBS_DIR = ASSETS / "jobs"
@@ -35,6 +36,8 @@ RECIPES_DIR = ASSETS / "recipes"
 TOKEN_FILE = HOME / ".config" / "asset-receiver" / "token"
 COMFY = "http://127.0.0.1:8188"
 COMFY_OUTPUT = HOME / "ComfyUI" / "output"
+OLLAMA = "http://127.0.0.1:11434"
+OLLAMA_UNLOAD_WAIT_S = 30
 ENGINES = {"comfyui", "kokoro"}
 ASSET_TYPES = {"image", "icon", "voice", "sfx", "music", "gif"}
 PROJECT_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -387,6 +390,42 @@ def run_kokoro(job_dir: Path, req: dict, recipe: dict) -> dict:
             "tool": "Kokoro 0.9.4 (CPU) + ffmpeg + faster-whisper small.en"}
 
 
+def ollama_loaded() -> list:
+    """Names of the models Ollama holds in memory now. Ollama not running = nothing loaded."""
+    try:
+        with urllib.request.urlopen(f"{OLLAMA}/api/ps", timeout=5) as r:
+            return [m.get("name") or m.get("model") for m in json.load(r).get("models", [])]
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Ollama /api/ps answered {e.code}")
+    except urllib.error.URLError:
+        return []
+
+
+def unload_ollama() -> list:
+    """Memory rule D6 (5 Oct 2026): Ollama and ComfyUI share the 16 GB GPU, so every
+    loaded Ollama model is unloaded before a ComfyUI job. The job fails if one stays."""
+    names = ollama_loaded()
+    for n in names:
+        req = urllib.request.Request(f"{OLLAMA}/api/generate",
+                                     data=json.dumps({"model": n, "keep_alive": 0}).encode(),
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                r.read()
+        except Exception as e:
+            print(f"[receiver] unloading {n} failed: {e}", flush=True)
+    deadline = time.time() + OLLAMA_UNLOAD_WAIT_S
+    left = ollama_loaded()
+    while left and time.time() < deadline:
+        time.sleep(1)
+        left = ollama_loaded()
+    if left:
+        raise RuntimeError(f"Ollama model(s) still loaded after {OLLAMA_UNLOAD_WAIT_S} s: {left}")
+    if names:
+        print(f"[receiver] unloaded Ollama: {names}", flush=True)
+    return names
+
+
 def free_comfyui():
     try:
         comfy_post("/free", {"unload_models": True, "free_memory": True})
@@ -403,6 +442,7 @@ def run_job(job_id: str):
         raise RuntimeError(f"recipe {req['recipe']} no longer approved or available")
     set_status(job_dir, "running", started=now())
     if recipe["engine"] == "comfyui":
+        set_status(job_dir, "running", ollama_unloaded=unload_ollama())   # D6
         try:
             result = run_comfyui(job_dir, req, recipe)
         finally:
