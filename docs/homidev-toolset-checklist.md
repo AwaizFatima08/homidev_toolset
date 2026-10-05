@@ -14,7 +14,7 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
 - [x] Google Chrome installed (updates via apt)
 - [x] System packages upgraded (27 Sep)
 - [ ] `homidev-setup.md` up to date and backed up (git + snapshot + Google Drive), done at the end of every session
-- [ ] `homidev-audit.sh` refreshed for v1.1 (still checks InvokeAI, piper, kdenlive; should check assets folders, Kokoro, faster-whisper)
+- [x] `homidev-audit.sh` v2.1 (5 Oct, sha256 `4249212a…4f47`, A1–A4 locked: read-only, `--hashes` option, unregistered model = FAIL, exit 1 on FAIL): 36 PASS incl. all model sha256; in backup (commit `8603e1f`); old v1 kept as `.bak-20261005`
 
 ## B. AI engines
 
@@ -37,6 +37,7 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
 ### Ollama (port 11434)
 - [x] Updated (0.34.4), service active
 - [x] gpt-oss:20b pulled, 100% GPU (12 GB VRAM); llama3.1:8b removed
+- [x] gemma4:12b-it-qat added 5 Oct (7.2 GB, Apache 2.0) — side test, see `llm-test-2026-10-05.md`; G5 = keep both, gpt-oss primary, Gemma for Urdu/medical/images
 - [x] Override file: `OLLAMA_HOST=0.0.0.0:11434`, `OLLAMA_KEEP_ALIVE=2m`, `OLLAMA_CONTEXT_LENGTH=8192`; reachable from homi-nas, survives reboot
 
 ### OpenWebUI (port 8080, manual)
@@ -109,7 +110,8 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
 - [ ] 7c boot from the 970, test everything (services, receiver, voice + image job), BIOS boot order
   - [x] 5 Oct: first start via F11 → `debian-nvme`: `/` = nvme…p3 hd-system, `/boot/efi` = nvme…p1 HD-EFI, root=UUID `e774525b…`, SecureBoot enabled, NVIDIA 615.71.09 sees RTX 5060 Ti, all 4 services active, no failed units. **Boot 16.8 s** (kernel 7.8 + userspace 9.0) vs ~3.5 min from the Toshiba
   - [x] swap = nvme1n1p2 32 GB (Toshiba swap no longer used); voice job `20261005-0010-test-voice-01` from homi-nas: **~20 s** (was ~60 s from the HDD), Stage 1 PASS as commercial, whisper 100%, −16.2 LUFS; receiver reports 945.7 GB free
-  - [ ] later: decide the old `debian` entry, tell Hadi which entry to pick
+  - [x] Hadi told to pick `debian-nvme` (5 Oct)
+  - [ ] ~19 Oct: decide the old `debian` entry together with the Toshiba
   - ⚠️ 5 Oct mistake (Claude's instruction): `efibootmgr -b 0003 -B` deleted the **debian-nvme** entry, not the stale one — after the reboot the firmware had removed the stale entry itself and renumbered debian-nvme to 0003 (BootCurrent: 0003). Boot files on the 970 untouched. **Rule: always list `efibootmgr` first and pick entries by label + partition, never by a number from an earlier session**
   - [x] 5 Oct: `debian-nvme` recreated as Boot0001 (partition `bf99bf22…`, 0x200000 = the 970's 1 GiB EFI); BootOrder 0000,0002,0001 — Windows still default. Note: this MSI firmware renumbers entries on reboot, so in F11 always go by the **name**
   - Recovery recipe if `debian-nvme` ever vanishes from F11: boot the old `debian` (Toshiba, while it is still connected) and re-run the 7b-3b commands
@@ -170,7 +172,7 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
 
 ## H. Later / optional
 
-- [ ] qwen3:14b (test for Urdu content)
+- [x] ~~qwen3:14b (test for Urdu content)~~ — not needed for now: Gemma 4 12B writes good Urdu (5 Oct)
 - [ ] qwen2.5-coder:14b + Continue in VS Code on homi-nas
 - [ ] Docker + NVIDIA Container Toolkit
 - [ ] LoRA training (AI-Toolkit or kohya_ss) for consistent app styles
