@@ -22,9 +22,13 @@ Rules:
 | Kokoro voice `af_heart` | `…/Kokoro-82M/…/voices/af_heart.pt` (512 KB) | same repository | Apache 2.0 | **yes** | `0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff` | 2026-09-30 | Default English (US, female) voice |
 | faster-whisper `small.en` (voice check only, produces no asset) | `~/.cache/huggingface/hub/models--Systran--faster-whisper-small.en/` (folder, ~480 MB) | https://huggingface.co/Systran/faster-whisper-small.en | MIT (checked 30 Sep 2026) | **yes** | (folder — not fingerprinted) | 2026-10-01 | Voice script check (`~/voice/stt`, CPU) |
 | spaCy `en_core_web_sm` 3.8.0 | Python package in `~/voice/tts` | https://github.com/explosion/spacy-models (official release) | MIT | **yes** | (pip package) | 2026-09-30 | English text processing for Kokoro |
+| Stable Audio 3 Small-SFX (Comfy-Org repackage) | `checkpoints/stable_audio_3_small_sfx.safetensors` (2.27 GB) | https://huggingface.co/Comfy-Org/stable-audio-3, revision `96fc663283cde94cb631bc84f6c9ece7bbe2bf25` (original: stabilityai/stable-audio-3-small-sfx) | Stability AI Community Licence, 5 Jul 2024 (checked 6 Oct 2026; `LICENSE.md` in `~/model-review/stable-audio-3/`): free while HomiLabs revenue < US$1M/yr · **registered with Stability 2026-10-06 (company: HomiLabs Solutions SMC Pvt Ltd; contact: Humayun Shahzad)** · apps using its sounds show "Powered by Stability AI" · re-check every October | **yes (conditions)** | `ed9cf1b6172f1a8c2921a9560c21109ff3239524563ced9dce6dcdef41e2f515` | 2026-10-06 | Sound effects (step 8b) |
+| T5Gemma b-b UL2 text encoder (Comfy-Org repackage) | `text_encoders/t5gemma_b_b_ul2.safetensors` (1.19 GB) | same repository and revision (original: google/t5gemma-b-b-ul2) | Gemma Terms of Use (checked 6 Oct 2026) | **yes** | `1e1eba25be8872edb0d3c6335c6658fd6388e7b14b60da6e454e404cfcd8150e` | 2026-10-06 | Text encoder for all Stable Audio 3 models (8b + 8c) |
 | SDXL Turbo | `checkpoints/sd_xl_turbo_1.0_fp16.safetensors` (6.5 GB) | https://huggingface.co/stabilityai/sdxl-turbo | Stability AI Non-Commercial Research Community Licence | **no — tests only** | `e869ac7d6942cb327d68d5ed83a40447aadf20e0c3358d98b2cc9e270db0da26` | 2026-09-26 | Pipeline tests only |
 
 Z-Image-Turbo uses all three Z-Image files together; all are Apache 2.0, so a job using them is `commercial_ok = yes` (strictest-licence rule still applies when combined with other models).
+
+Stable Audio 3 Small-SFX uses its checkpoint + the T5Gemma text encoder → a sound-effects job's licence is "Stability AI Community Licence + Gemma terms" (strictest-licence rule). Commercial use depends on the Community Licence conditions (revenue < US$1M/yr, registration, attribution) — re-check every October.
 
 ## Tools (not models, listed for completeness)
 
@@ -42,11 +46,12 @@ Note: Kokoro and faster-whisper models live in the Hugging Face cache (`~/.cache
 | FLUX.2 [klein] **9B** | Non-commercial licence (the **4B** is Apache 2.0 — do not confuse) — added 5 Oct 2026 |
 | FLUX.2 [dev] | FLUX non-commercial licence — added 5 Oct 2026 |
 | FLUX.1 [dev] | FLUX.1 [dev] non-commercial licence — added 5 Oct 2026 |
+| Meta MusicGen | CC-BY-NC 4.0 — non-commercial — added 6 Oct 2026 |
 
 ## Pending (planned, not yet installed)
 
 | Model | Purpose | Licence to verify |
 |---|---|---|
-| Stable Audio Open | Sound effects | Stability AI Community Licence — revenue threshold, record terms |
-| ACE-Step | Music | Apache 2.0 expected |
+| Stable Audio 3 Small-Music | Music loops (step 8c) | Stability AI Community Licence (same terms as Small-SFX); uses the installed T5Gemma encoder |
+| (reserve) ACE-Step 1.5 Turbo | Music — only if Small-Music falls short | Apache 2.0 |
 | (reserve) FLUX.2 [klein] 4B | Image editing / reference-based icon sets — only if Z-Image-Turbo falls short | Apache 2.0 (checked 5 Oct 2026) |
