@@ -1,4 +1,9 @@
 # receiver.py - homidev asset receiver
+# v0.8 (7 Oct 2026) - step 8b-6 (D1): sfx clean-up can also trim silence BEFORE the sound
+#   (settings.lead_keep_s, e.g. 0.01 = keep 10 ms); recipes without it behave exactly as v0.7
+# v0.7 (7 Oct 2026) - step 8b-5a (V1-V6): ComfyUI audio outputs; "sfx" clean-up
+#   (mono, trim tail, peak -3 dB, no metadata, Opus OGG) for recipes with
+#   settings.postprocess = "sfx"; int inputs may have min/max
 # v0.6 (5 Oct 2026) - step 8a-5: unload Ollama models before every ComfyUI job (D6)
 # v0.5 (2 Oct 2026) - step 9e: + voice engine (Kokoro -> trim/loudness -> WAV+OGG -> whisper check)
 # v0.4 - step 9d: real jobs for ComfyUI recipes
@@ -27,7 +32,7 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-VERSION = "0.6"
+VERSION = "0.8"
 HOME = Path.home()
 ASSETS = HOME / "assets"
 JOBS_DIR = ASSETS / "jobs"
@@ -233,8 +238,9 @@ def validate_job(req: JobRequest) -> dict:
         if "choices" in rule and value not in rule["choices"]:
             reject(422, f"input {name!r} must be one of {rule['choices']}")
         if rule.get("type") == "int":
-            if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 2**53:
-                reject(422, f"input {name!r} must be a whole number from 0 to 2^53")
+            lo, hi = rule.get("min", 0), rule.get("max", 2**53)
+            if not isinstance(value, int) or isinstance(value, bool) or not lo <= value <= hi:
+                reject(422, f"input {name!r} must be a whole number from {lo} to {hi}")
         else:
             if not isinstance(value, str) or not value.strip():
                 reject(422, f"input {name!r} must be non-empty text")
@@ -313,9 +319,9 @@ def run_comfyui(job_dir: Path, req: dict, recipe: dict) -> dict:
     if hist["status"]["status_str"] != "success":
         raise RuntimeError(f"ComfyUI error: {hist['status'].get('messages', '')}"[:500])
 
-    # collect outputs and move them into the job folder with clean names
-    produced = [img for out in hist.get("outputs", {}).values() for img in out.get("images", [])
-                if img.get("type") == "output"]
+    # collect outputs (images and audio) and move them into the job folder with clean names
+    produced = [o for out in hist.get("outputs", {}).values() for kind in ("images", "audio")
+                for o in out.get(kind, []) if o.get("type") == "output"]
     files = []
     for variant in recipe["outputs"]:
         match = [i for i in produced if i["filename"].startswith(f"{job_id}_{variant}_")]
@@ -325,10 +331,68 @@ def run_comfyui(job_dir: Path, req: dict, recipe: dict) -> dict:
         ext = src.suffix.lower()
         dst = job_dir / f"{job_id}_{variant}{ext}"
         shutil.move(str(src), str(dst))
+        if ext in AUDIO_EXTS:
+            strip_metadata(dst)          # SFX5: ComfyUI hides the whole workflow in the file
         files.append({"name": dst.name, "sha256": sha256(dst), "format": ext.lstrip("."),
-                      "size": dst.stat().st_size, **image_info(dst)})
-    return {"inputs": inputs, "files": files,
-            "tool": "ComfyUI " + comfyui_status().removeprefix("ok (").rstrip(")")}
+                      "size": dst.stat().st_size,
+                      **(audio_info(dst) if ext in AUDIO_EXTS else image_info(dst))})
+    post = None
+    if recipe.get("settings", {}).get("postprocess") == "sfx":
+        master = job_dir / files[0]["name"]
+        ogg, post = sfx_postprocess(job_dir, job_id, master, recipe["settings"])
+        files.append({"name": ogg.name, "sha256": sha256(ogg), "format": "ogg",
+                      "size": ogg.stat().st_size, **audio_info(ogg)})
+    return {"inputs": inputs, "files": files, "postprocess": post,
+            "tool": "ComfyUI " + comfyui_status().removeprefix("ok (").rstrip(")")
+                    + (" + ffmpeg (sfx clean-up)" if post else "")}
+
+
+AUDIO_EXTS = {".flac", ".wav", ".mp3", ".ogg", ".opus"}
+MIN_SFX_S = 0.02
+
+
+def strip_metadata(path: Path):
+    """Re-write an audio file without any tags (audio itself unchanged for FLAC/WAV)."""
+    tmp = path.with_name(path.stem + ".clean" + path.suffix)
+    run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", path, "-map_metadata", "-1",
+             "-fflags", "+bitexact", "-flags:a", "+bitexact",
+             "-c:a", "flac" if path.suffix == ".flac" else "copy", tmp], 60, "strip metadata")
+    os.replace(tmp, path)
+
+
+def sfx_postprocess(job_dir: Path, job_id: str, master: Path, s: dict):
+    """SFX1-SFX5 (locked 7 Oct 2026): mono, trim trailing silence, peak level, no metadata, Opus OGG.
+    D1 (8b-6): if settings.lead_keep_s is set, also trim leading silence (keep lead_keep_s)."""
+    thr, keep = s.get("trim_threshold_db", -50), s.get("trim_keep_s", 0.05)
+    fade, peak, kbps = s.get("fade_s", 0.01), s.get("peak_db", -3), s.get("opus_kbps", 64)
+    lead = s.get("lead_keep_s")
+    lead_f = (f"silenceremove=start_periods=1:start_threshold={thr}dB:start_silence={lead},"
+              if lead is not None else "")
+    ogg = job_dir / f"{job_id}_sfx.ogg"
+    with tempfile.TemporaryDirectory() as tmp:
+        trimmed = Path(tmp) / "trimmed.wav"
+        chain = (f"aformat=channel_layouts=mono,{lead_f}areverse,silenceremove=start_periods=1:"
+                 f"start_threshold={thr}dB:start_silence={keep},afade=t=in:d={fade},areverse")
+        run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", master, "-af", chain,
+                 "-c:a", "pcm_s16le", trimmed], 60, "sfx trim")
+        dur = 0.0
+        if trimmed.exists() and trimmed.stat().st_size > 100:
+            dur = float(json.loads(run_cmd(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                            "-of", "json", trimmed], 60, "ffprobe").stdout)["format"]["duration"])
+        if dur < MIN_SFX_S:
+            raise RuntimeError(f"sfx clean-up left {dur:.3f} s of sound (model output silent or below {thr} dB)")
+        vd = run_cmd(["ffmpeg", "-nostdin", "-hide_banner", "-i", trimmed, "-af", "volumedetect",
+                      "-f", "null", "-"], 60, "peak measurement").stderr
+        mx = re.findall(r"max_volume:\s+(-?[\d.]+|-inf) dB", vd)
+        if not mx or mx[-1] == "-inf":
+            raise RuntimeError("sfx clean-up: sound is silent")
+        gain = round(peak - float(mx[-1]), 1)
+        run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", trimmed, "-map_metadata", "-1",
+                 "-af", f"volume={gain}dB", "-c:a", "libopus", "-b:a", f"{kbps}k",
+                 "-fflags", "+bitexact", "-flags:a", "+bitexact", ogg], 60, "OGG encode")
+    return ogg, {"type": "sfx", "trimmed_duration_sec": round(dur, 3), "gain_db": gain,
+                 "peak_target_db": peak,
+                 **({"lead_keep_s": lead} if lead is not None else {})}
 
 
 def run_cmd(cmd: list, timeout: int, what: str) -> subprocess.CompletedProcess:
@@ -473,6 +537,7 @@ def run_job(job_id: str):
         "glossary": result["inputs"].get("glossary"),
         "voice": result["inputs"].get("voice"),
         "script_check": result.get("check"),
+        "postprocess": result.get("postprocess"),
         "settings": {**result["inputs"], **recipe.get("settings", {})},
         "notes": req.get("notes", ""),
         "created_at": now(),

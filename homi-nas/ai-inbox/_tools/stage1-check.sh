@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# stage1-check.sh <job-folder> <commercial-project: yes|no>   (v0.4, 5 Oct 2026)
+# stage1-check.sh <job-folder> <commercial-project: yes|no>   (v0.5, 7 Oct 2026)
+# v0.5 (K1-K6, step 8b-5c): asset_type "sfx" gets its own rules: deliverable 0.02-10 s, mono, true peak
+#       -4..-1 dB (above -1 FAIL, below -4 WARN), loudness info only, start silence > 0.1 s WARN, end silence
+#       > 0.1 s FAIL, no hidden workflow text in any audio file, manifest postprocess.type = sfx;
+#       *_master.* = untouched original: fingerprint + info line only. Voice/image checks unchanged.
 # v0.4 (K1): clips < 5 s: loudness within -16 +/- 3 but outside +/- 1 = WARN (loudness is unreliable on very short clips); >= 5 s stays strict
 # Lives on homi-nas at ~/ai-inbox/_tools/stage1-check.sh
 # v0.3 (step 10b, G1-G6): audio checks measured here with ffmpeg (length > 0.5 s, loudness -16 +/- 1 LUFS,
@@ -35,8 +39,9 @@ for c in $(jq -r '.files[].name' manifest.json | grep _cutout); do
   file -b "$c" | grep -q RGBA && ok "$c has transparency" || bad "$c has NO transparency"
 done
 
-# ---- audio (G1): measured here, not copied from the manifest
-for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(wav|ogg|mp3)$'); do
+TYPE=$(jq -r .asset_type manifest.json)
+# ---- audio (G1): measured here, not copied from the manifest (voice and other non-sfx audio)
+[ "$TYPE" != "sfx" ] && for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(wav|ogg|mp3)$'); do
   [ -f "$a" ] || continue
   if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then bad "$a: ffmpeg/ffprobe not installed on this machine"; continue; fi
   dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$a")
@@ -55,6 +60,41 @@ for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(wav|ogg|mp3)$'); do
   if [ -n "$lead" ] && awk -v s="$lead" 'BEGIN{exit !(s<0.05)}'; then bad "$a starts with >= 0.5 s of silence"; else ok "$a no long silence at start"; fi
   if [ "$last" = "silence_start" ] || { [ -n "$lend" ] && awk -v e="$lend" -v d="$dur" 'BEGIN{exit !(d-e<0.05)}'; }; then bad "$a ends with >= 0.5 s of silence"; else ok "$a no long silence at end"; fi
 done
+
+# ---- sound effects (K1-K6): own rules, peak-based, measured here
+if [ "$TYPE" = "sfx" ]; then
+  if [ "$(jq -r '.postprocess.type // empty' manifest.json)" = "sfx" ]; then
+    ok "sfx clean-up ran (gain $(jq -r .postprocess.gain_db manifest.json) dB, sound $(jq -r .postprocess.trimmed_duration_sec manifest.json) s)"
+  else bad "manifest: postprocess.type is not sfx (clean-up did not run)"; fi
+  deliver=0
+  for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(ogg|flac|wav|mp3)$'); do
+    [ -f "$a" ] || continue
+    if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then bad "$a: ffmpeg/ffprobe not installed on this machine"; continue; fi
+    if grep -qa 'class_type' "$a" || ffprobe -v error -show_entries format_tags:stream_tags -of default=nw=1 "$a" | grep -qiE '^TAG:(prompt|workflow)='; then
+      bad "$a contains hidden workflow info"; else ok "$a no hidden workflow info"; fi
+    dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$a")
+    ch=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of csv=p=0 "$a")
+    case "$a" in *_master.*) echo "        master (original, not judged on level): ${dur}s, ${ch} channel(s)"; continue ;; esac
+    deliver=$((deliver+1))
+    awk -v d="$dur" 'BEGIN{exit !(d>=0.02 && d<=10)}' && ok "$a length ${dur}s" || bad "$a length ${dur:-?}s (allowed 0.02-10 s)"
+    [ "$ch" = "1" ] && ok "$a mono" || bad "$a has ${ch:-?} channels (must be mono)"
+    meter=$(ffmpeg -nostdin -hide_banner -i "$a" -af ebur128=peak=true -f null - 2>&1)
+    lufs=$(echo "$meter" | grep -oP 'I:\s+\K-?[0-9.]+(?= LUFS)' | tail -n1)
+    peak=$(echo "$meter" | grep -oP 'Peak:\s+\K(-?[0-9.]+|-inf)(?= dBFS)' | tail -n1)
+    if [ -z "$peak" ] || [ "$peak" = "-inf" ]; then bad "$a is silent (no peak)"
+    elif awk -v p="$peak" 'BEGIN{exit !(p>-1.0)}'; then bad "$a true peak $peak dBFS (above -1)"
+    elif awk -v p="$peak" 'BEGIN{exit !(p<-4.0)}'; then warn "$a true peak $peak dBFS (below -4: quiet -> listen)"
+    else ok "$a true peak $peak dBFS"; fi
+    echo "        loudness ${lufs:-?} LUFS (info only for sfx)"
+    sd=$(ffmpeg -nostdin -hide_banner -i "$a" -af silencedetect=noise=-50dB:d=0.1 -f null - 2>&1)
+    lead=$(echo "$sd" | grep -oP 'silence_start: \K-?[0-9.]+' | head -n1)
+    last=$(echo "$sd" | grep -oP 'silence_(start|end)' | tail -n1)
+    lend=$(echo "$sd" | grep -oP 'silence_end: \K[0-9.]+' | tail -n1)
+    if [ -n "$lead" ] && awk -v s="$lead" 'BEGIN{exit !(s<0.05)}'; then warn "$a starts with > 0.1 s of silence"; else ok "$a no silence at start"; fi
+    if [ "$last" = "silence_start" ] || { [ -n "$lend" ] && awk -v e="$lend" -v d="$dur" 'BEGIN{exit !(d-e<0.05)}'; }; then bad "$a ends with > 0.1 s of silence (trim did not run?)"; else ok "$a no silence at end"; fi
+  done
+  [ "$deliver" -ge 1 ] && ok "$deliver sfx deliverable(s) checked" || bad "no sfx deliverable (OGG) in job"
+fi
 
 # ---- voice script check (G2): mismatch is a warning for Homi, not a failure
 if [ "$(jq -r .asset_type manifest.json)" = "voice" ]; then

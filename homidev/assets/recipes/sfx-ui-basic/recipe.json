@@ -1,0 +1,25 @@
+{
+  "name": "sfx-ui-basic",
+  "version": "1.1",
+  "asset_type": "sfx",
+  "engine": "comfyui",
+  "models": ["stable-audio-3-small-sfx", "t5gemma-b-b-ul2-text-encoder"],
+  "inputs": {
+    "prompt":  { "required": true,  "max_length": 500 },
+    "seconds": { "required": false, "type": "int", "min": 1, "max": 10, "default": 2 },
+    "seed":    { "required": false, "type": "int" }
+  },
+  "outputs": ["master"],
+  "settings": {
+    "postprocess": "sfx",
+    "trim_threshold_db": -50,
+    "trim_keep_s": 0.05,
+    "lead_keep_s": 0.01,
+    "fade_s": 0.01,
+    "peak_db": -3,
+    "opus_kbps": 64
+  },
+  "approved_by": "Homi",
+  "approved_date": "2026-10-07",
+  "notes": "Sound effects with Stable Audio 3 Small-SFX (Community Licence + Gemma terms). 8 steps, cfg 1, lcm/simple, as tested in 8b-4. Receiver v0.7 clean-up (SFX1-SFX5): master FLAC as generated (metadata stripped) + OGG/Opus 64k mono, trailing silence trimmed, peak -3 dB. From v1.1 (receiver v0.8, D1): silence before the sound is also trimmed, keeping 10 ms. Prompt rules (SFX7): kind of sound + source + material + space ('dry, close-up') + 'Length: N seconds'; no reliance on fine details; make 3 versions with different seeds. Seconds (SFX6): ~2 for UI sounds, 3-4 for longer effects. Apps using these sounds show 'Powered by Stability AI'."
+}

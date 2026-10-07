@@ -1,6 +1,6 @@
 # homidev Toolset Checklist
 
-Status as of 6 Oct 2026. Follows design **v1.1** (`homidev-asset-pipeline-design.md`). Tick items as they are verified, then commit this file alongside `homidev-setup.md`.
+Status as of 7 Oct 2026. Follows design **v1.1** (`homidev-asset-pipeline-design.md`). Tick items as they are verified, then commit this file alongside `homidev-setup.md`.
 
 Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on something else
 
@@ -66,12 +66,18 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
 - [x] Kokoro TTS (1 Oct): `~/voice/tts`, CPU, voice `af_heart`, clear speech; espeak-ng + en_core_web_sm installed
 - [x] faster-whisper `small.en` (1 Oct): `~/voice/stt`, CPU; check.py v0.3 with glossary → 100% PASS
 - [ ] Later: try a British/other voice; loudness normalise to −16 LUFS with ffmpeg (Stage 1 audio checks, step 10)
-- [ ] Sound effects (8b) and music (8c): see `homidev-step8bc-audio-comparison.md` v0.6 — **P1–P7 locked 6 Oct**: Stable Audio 3 Small-SFX (8b) then Small-Music (8c); ACE-Step 1.5 reserve; MusicGen blocked
+- [ ] Sound effects (8b, **closed 7 Oct**) and music (8c): see `homidev-step8bc-audio-comparison.md` v0.6 — **P1–P7 locked 6 Oct**: Stable Audio 3 Small-SFX (8b) then Small-Music (8c); ACE-Step 1.5 reserve; MusicGen blocked
   - [x] 8b-1 (6 Oct): read-only pre-check PASS — ComfyUI 0.37.0 already supports Stable Audio 3 (`sa3.py`), **no ComfyUI update**; torch 2.14.0+cu130 True (first try failed only because the shell sat in deleted `/tmp/zrec`)
   - [x] 8b-2 (6 Oct): `stable_audio_3_small_sfx.safetensors` + `t5gemma_b_b_ul2.safetensors` in `~/model-review/stable-audio-3/` (~13 min), both sha256 OK; LICENSE.md, SOURCE.txt, SHA256SUMS kept there. Q1–Q6 locked
   - [x] 8b-3a (6 Oct): Stability registration done 6 Oct (HomiLabs Solutions SMC Pvt Ltd, contact Humayun Shahzad); MODEL-REGISTER.md `4118d485…6ec4` + models.json `7e6e9d0d…22ed`; backups `*.bak-20261006` = originals; MusicGen blocked
   - [x] 8b-3b (6 Oct): both models in `~/ComfyUI/models/` (`mv -n`), sha256 OK before + after against models.json; review folder keeps licence record — **8b-3 closed**
-  - [ ] 8b-4 first test sound · then SFX recipe + Stage 1 SFX rules (peak-based, mono?)
+  - [x] 8b-4 (7 Oct): T1–T7 locked; `sfx-test.sh` v1 on homi-nas; 3 test sounds via ComfyUI API, 5 s each; findings: trailing ~1 s silence, really mono, levels −14…−2 dB peak, fine prompt details ignored, workflow hidden in FLAC metadata. **SFX0–SFX8 locked** (mono, trim, peak −3 dB, FLAC master + Opus 64k, strip metadata, 3 versions per sound)
+  - [x] 8b-5a (7 Oct): receiver **v0.7** (sha256 `de10a598…7afd`, backup `receiver.py.bak-20261007` = v0.6): audio outputs + sfx clean-up + int min/max; sandbox-tested; image regression PASS on homidev
+  - [x] 8b-5b (7 Oct): recipe `sfx-ui-basic` v1.0 installed on homidev (recipe.json `bfd19982…d3d8`, workflow.json `04bba283…b2ac`); /recipes: commercial_ok yes, 0 skipped. Lesson: first paste ran on homi-nas by mistake (harmless) → **every paste now starts with a hostname check**
+  - [x] 8b-5c (7 Oct): `stage1-check.sh` **v0.5** installed on homi-nas (sha256 `3ebb7e9a…568d`, backup `.bak-20261007` = v0.4); K1–K6; image test job still PASS
+  - [x] 8b-5d (7 Oct): first real sfx jobs end-to-end `20261007-1709-test-sfx-01..03` (button tap, seeds 3001–3003): all PASS with 1 WARN each — **0.31–0.35 s silence before the click** (would feel laggy). D1–D3 locked
+  - [x] 8b-6 (7 Oct): receiver **v0.8** (sha256 `0081529c…3748`, backup `receiver.py.bak-v0.7`; optional start trim `lead_keep_s`, recipes without it byte-identical to v0.7) + recipe `sfx-ui-basic` **v1.1** (`cb08f549…4fbb`, `lead_keep_s` 0.01; backup `~/assets/recipe-sfx-ui-basic-v1.0.json.bak`). Re-run `20261007-2120-test-sfx-01..03`: 0.78–0.82 s, pause before click < 0.01 s, **all Stage 1 PASS, no WARN**. Same seed → identical master audio (reproducible). **Homi's Stage 2 pick: tap 02. 8b closed.**
+  - [ ] 8c Small-Music — **next**
 - Urdu voice: deferred · Piper, Kdenlive: not needed
 
 ## E. Storage and the NVMe move (build step 7)
@@ -156,7 +162,7 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
   - [ ] Clean up later: `~/ai-inbox/_test/` scratch files (homidev job `20260930-2303-test-image-01` deleted by hand 1 Oct; it had no status.json so the clean-up script would never remove it)
 - [x] Step 6: Kokoro + faster-whisper voice test (1 Oct)
 - [x] Step 7: NVMe move (5 Oct; boot-entry tidy-up pending, see E)
-- [ ] Step 8: commercial image model (**8a closed 5 Oct**, see E), Stable Audio Open (8b), ACE-Step (8c)
+- [ ] Step 8: commercial image model (**8a closed 5 Oct**, see E), sound effects (**8b closed 7 Oct**, Stable Audio 3 Small-SFX), music (8c: Stable Audio 3 Small-Music, ACE-Step 1.5 reserve)
 - [ ] Step 9: receiver (design `receiver-design.md` v1.0, approved 1 Oct; built before NVMe by Homi's decision)
   - [x] 9a env `~/receiver/venv` (FastAPI+uvicorn), token `~/.config/asset-receiver/token` on both machines, `/health` 200 with token / 401 without
   - [x] 9b `~/assets/models.json` + recipe `test-image-cutout`; `/recipes` shows commercial_ok=no; unapproved recipe ignored
@@ -183,6 +189,11 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
   - Pilot findings → homidev.md v2.1: full-bleed background avoids the icon tile; one `asset-job.sh` call per job; ask Homi before a repo's first commit or under an unexpected git identity
   - [x] Git identity on homi-nas commits as "Awaiz Fatima": **resolved 6 Oct — deliberate** (Awaiz-managed account); no change
 - [ ] Step 11: further recipes one at a time: image → voice → sfx → music
+  - [ ] **FIRST: voice recipe v1.1 with a limiter** — 7 Oct regression job (2.1 s clip) FAILED Stage 1 at −23.5 LUFS; short clips can't reach −16 with loudnorm + −1.5 dB peak cap
+  - [ ] Q5: apps using Stable Audio sounds show "Powered by Stability AI" (asset-integrate.sh / homidev.md rule)
+  - [ ] asset-integrate.sh: support `sfx` (OGG only), like voice
+  - [ ] review-sheet.sh: support `sfx` jobs
+  - [ ] Note for sfx prompts: the model adds a faint sound near the asked length (D2: left in, inaudible) — ask for a shorter length (e.g. 'Length: 0.3 seconds') if a file must be tiny
 
 ## H. Later / optional
 
@@ -191,4 +202,7 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
 - [ ] Docker + NVIDIA Container Toolkit
 - [ ] LoRA training (AI-Toolkit or kohya_ss) for consistent app styles
 - [ ] Sunshine + Moonlight (GPU remote desktop)
+- [ ] RAM: SK hynix 16 GB DDR5-5600 added in B2 (7 Oct) but **not detected** — reseat/check this evening; ideally same model as the Corsair CMK16GX5M1B5200Z40 in A2; then one overnight memtest86+ run
 - [ ] RAM upgrade to 64 GB (2 × 32 GB)
+- [ ] `homidev-backup.sh`: delete-guard (stop if a commit would delete tracked docs) — after the 7 Oct checklist-deletion slip
+- [ ] Tidy `~/model-review/z-image-turbo/` (keep licence record only)
