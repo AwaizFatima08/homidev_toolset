@@ -34,6 +34,19 @@ Z-Image-Turbo uses all three Z-Image files together; all are Apache 2.0, so a jo
 
 Stable Audio 3 Small-SFX and Small-Music each use their checkpoint + the T5Gemma text encoder → a sound-effects or music job's licence is "Stability AI Community Licence + Gemma terms" (strictest-licence rule). Commercial use depends on the Community Licence conditions (revenue < US$1M/yr, registration, attribution) — re-check every October.
 
+## Chat models (Ollama / LM Studio — offline backup, decision 9 Oct 2026)
+
+Not asset models: nothing they write enters a repo through the receiver, so they are **not** in `models.json`. Listed here (Homi, 9 Oct 2026) as the offline backup when no online model is available. Ollama blob digests from `ollama show --modelfile`; LM Studio file sha256 verified at download.
+
+| Model | Where | Size / quant | Licence | commercial_ok | Digest / sha256 | Added | Role (test 8 Oct) |
+|---|---|---|---|---|---|---|---|
+| gpt-oss:20b | Ollama | 13 GB, 20.9B MoE, MXFP4 | Apache 2.0 | yes | `e7b273f9636059a6…` | 2026-09-27 | **Primary**: reasoning, code, English; 92 tok/s |
+| gemma4:12b-it-qat | Ollama | 7.2 GB, 11.9B, Q4_0 QAT | Apache 2.0 | yes | `faff1a63667fac17…` | 2026-10-05 | Urdu, medical text, images (5 Oct test) |
+| qwen3.5:9b | Ollama | 6.6 GB, 9.0B, Q4_K_M | Apache 2.0 | yes | `02d45dc1cf451ba2…` | 2026-10-08 | Vision, 256K context; thinking runs long — use think:false |
+| deepseek-r1:14b | Ollama | 9.0 GB, 14.8B, Q4_K_M | MIT | yes | `6e9f90f02bb3b39b…` | 2026-10-08 | Maths/code second opinion; no Urdu |
+| deepseek-r1:8b (0528) | Ollama | 5.2 GB, 8.2B, Q4_K_M | MIT | yes | `e6a7edc1a4d7d9b2…` | 2026-10-08 | Small fast fallback; thinking runs long |
+| qwen3.5-9b (lmstudio-community Q4_K_M + mmproj) | LM Studio `~/.lmstudio/models/lmstudio-community/Qwen3.5-9B-GGUF/` | 5.4 GB + 0.9 GB | Apache 2.0 | yes | `cd76ec205963…` / `330d17547bfd…` | 2026-10-08 | LM Studio test model (API port 1234, local) |
+
 ## Tools (not models, listed for completeness)
 
 | Tool | Licence | Note |

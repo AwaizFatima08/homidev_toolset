@@ -24,7 +24,7 @@ Expected: 1 = 22 patients · 2 = 62.5 mg (half tablet), +38.9 % · 3 = 2/3.
 | 1 Clinic schedule (22) | ✅ 22, clear | ❌ cut off while thinking, no answer | ✅ 22, clear | ❌ cut off, no answer | |
 | 2 Dose (62.5 mg, +38.9 %) | ✅ exact | ❌ cut off, no answer | ✅ exact (38.89 %) | ❌ cut off, no answer | |
 | 3 Three boxes (2/3) | ✅ with a second counting check | ✅ 2/3 | ✅ 2/3 (Bayes) | ✅ 2/3 | |
-| 4 Urdu notice (5 sentences) | 5 sentences, readable, one English term in brackets — **Homi to judge** | answered in Urdu — **Homi to judge** (no cut-off) | ❌ **answered in English** — failed the task | ❌ Urdu is garbled (made-up place name, nonsense phrases) | |
+| 4 Urdu notice (5 sentences) | 5 sentences, readable, one English term in brackets | answered in Urdu, one paragraph, odd term for heat exhaustion | ❌ **answered in English** — failed the task | ❌ Urdu is garbled (made-up place name, nonsense phrases) | **Homi (9 Oct): gpt-oss version is good; Qwen second** |
 | 5 Dart function + test | ✅ correct, compact, 5 `assert` tests, wraps to next day | ❌ cut off, no code | ✅ correct minute-maths, but only `print` examples, no real test | ❌ cut off, no code | |
 
 **Reading of the results**
@@ -42,10 +42,10 @@ Expected: 1 = 22 patients · 2 = 62.5 mg (half tablet), +38.9 % · 3 = 2/3.
 | Bigger GPU (24–32 GB) | 27–32 B models fully on the GPU at 20–40 tok/s | Only worth it if a 27–32 B model is shown to be clearly better *for Homi's tasks* than gpt-oss:20b. Not shown yet. |
 | Online models for hard tasks | Frontier quality on demand, no hardware | The cases where local models failed today (Urdu from DeepSeek, cut-offs) are exactly where an online model would be used. Cheap compared with a GPU. |
 
-Recommendation to critique: **no hardware spending now**. Use gpt-oss:20b locally; Gemma 4 for Urdu/vision; online models for the hardest or longest tasks. Re-test when the second RAM stick is in (qwen3.5:27b) before deciding on a GPU.
+**Decision (Homi, 9 Oct 2026): no investment at the moment — same hardware.** Recommendation was: no hardware spending now. Use gpt-oss:20b locally; Gemma 4 for Urdu/vision; online models for the hardest or longest tasks. Re-test when the second RAM stick is in (qwen3.5:27b) before deciding on a GPU.
 
 ## 4. Open follow-ups
 - Homi reads the Urdu answers (gpt-oss, qwen3.5) in `*_4-urdu.md` and fills the Homi column.
 - Non-thinking run of qwen3.5:9b and deepseek-r1:8b (`think: false`) — are they useful fast chat/vision models?
 - LM Studio: same Qwen 3.5 9B GGUF imported there (lmstudio-community Q4_K_M + vision mmproj) to compare tokens/s with Ollama once the download finishes.
-- Register: chat models stay outside MODEL-REGISTER (G-decision 5 Oct: they make no assets); listed here with licence instead. L3's "each in MODEL-REGISTER" is therefore **not** applied — Homi to confirm or overrule.
+- Register: **Homi (9 Oct): yes** — chat models listed in MODEL-REGISTER.md (new section 'Chat models', offline backup when no online model is available); not in models.json (not asset models).
