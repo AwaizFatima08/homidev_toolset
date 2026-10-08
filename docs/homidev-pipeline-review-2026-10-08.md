@@ -4,7 +4,7 @@ Reviewed: receiver v0.10 (762 lines, homidev copy identical to the git copy), al
 
 Overall: the pipeline is solid. Validation, licence gates (two locks), atomic status/manifest files, restart recovery, one-job queue and the audio clean-ups are all correct as designed. I found **no crash bugs**. Below: 4 real defects, 5 weaknesses, then tool proposals.
 
-## A. Defects (should be fixed)
+## A. Defects (should be fixed) — status 8 Oct 22:00: D1 fixed (asset-job v1.2 + asset-pull), D2 + D3 fixed (receiver v0.11, proven), D4 fixed (local-only binds)
 
 | # | Where | What | Effect | Fix |
 |---|---|---|---|---|
