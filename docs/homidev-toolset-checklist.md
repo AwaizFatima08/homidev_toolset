@@ -225,9 +225,19 @@ Purpose (Homi): experiment with LLMs and use the results to decide on hardware u
   - [x] T4 draft `icon-cutout-basic` v0.1-draft in `~/assets/recipes-draft/` (approved_by empty → receiver ignores; copy in repo `homidev/assets/recipes-draft/`). Z-Image + BiRefNet → InvertMask → JoinImageWithAlpha, outputs raw + cutout. Needs Homi: approve, move to `recipes/`, 3 test icons.
   - [x] **D4 done by Homi (8 Oct 21:50):** `comfyui.service` `--listen 127.0.0.1`, Ollama drop-in `OLLAMA_HOST=127.0.0.1:11434` (backups `*.bak-20261008`). Verified: no answer from the LAN on 8188/11434, receiver 8190 unchanged, audit 11b all PASS (46 pass · 0 warn). ComfyUI page now via Remote Desktop or `ssh -L 8188:127.0.0.1:8188 homidev@192.168.100.123`.
   - [ ] Relabel boot entry 0003 → `debian-nvme` (sudo paste given 8 Oct)
+  - [x] **V1 decision (Homi, 8 Oct 22:05): video stays tests only; Wan 2.2 5B stays installed; real use only in a special case with Homi's per-request approval (like GIFs) — and then T5 (recipe + Stage 1 video rules + review-sheet player) comes first.** Sensible uses if ever: full-frame flat background loop behind a splash/onboarding screen; image-to-video from an already approved illustration (start_image). Not for icon/button/loader animations (no alpha, no vector) — those stay code/Lottie.
   - [x] **Receiver v0.11 installed by Homi (8 Oct 21:05, sha `a2d03b6a…`, backup `receiver.py.bak-v0.10`).** Proof job `20261008-2108-test-image-01` (image-zimage-basic, seed 11011): LM Studio model loaded on purpose beforehand → status.json `lmstudio_unloaded: [qwen3.5-9b]`, `gpu_used_mib_before: 476`; PNG has only IHDR/cHRM/bKGD/IDAT/IEND (hidden workflow gone); Stage 1 v0.7 PASS incl. 'no hidden workflow info' + size check; 13 s.
   - [x] T8 `homidev-backup.sh` v1.1 (`483e1a45…`, backup `.bak-v1.0`): delete-guard (stops on any staged deletion unless `--allow-delete`). Session backup: git `c10773c` (no D lines), local snapshot `~/homidev_toolset-snapshots/homidev_toolset-2026-10-08-step12-c10773c.tar.gz`, Drive folder "2026-10-08 homidev step 12 backup (session 1: LM Studio, LLMs, Wan test, review)".
   - [ ] T4 icon cut-out recipe · T6 audit v2.2 · T5 video recipe only after Homi's decision
+
+## G3. Step 13 — Lottie animations on homi-nas (LT1–LT8 agreed 8 Oct 2026, option A: homi-nas, not homidev)
+
+- [x] LT2 env `~/lottie/venv` (python-lottie 0.7.2 AGPL-3 tool, cairosvg, pillow); helper `~/lottie/homilottie.py` v1.0 (job folder + manifest + previews; reverses shape order; copies in repo `homi-nas/lottie/`)
+- [x] LT3 `lottie-check.sh` v1.0 (`acc4e57b…`); `review-sheet.sh` **v1.2** (`b562edaa…`, backup `.bak-v1.1`): embedded lottie-web 5.13 (MIT, `_tools/lib/lottie.min.js` sha `2eb76297…`), loop per manifest, click to replay; `asset-integrate.sh` **v1.2** (`121afcc0…`, backup `.bak-v1.1`): lottie → `*_lottie.json`, re-runs lottie-check
+- [x] LT5 first batch (project `test`): `20261008-2150-test-lottie-01` success-tick (1.2 s, once) · `20261008-2152-test-lottie-01` heartbeat-loader (1.6 s loop) · `20261008-2150-test-lottie-03` empty-state (4 s loop). All lottie-check + Stage 1 PASS, 1–4 KB each. Lessons: Lottie draws the first shape on top (fixed in `finish()`); screen y grows downward (heart was upside down). Review sheet `~/ai-inbox/test/review-20261008-2152.html` — **Homi's decision pending**
+- [x] LT6 `homidev.md` **v2.4** (backup `.bak-v2.3`): Lottie paragraph
+- [ ] LT4 first real app: Homi names the app; add `lottie` package, `assets/lottie/`, usage note
+- [ ] LT8 optional: homidev `lottie-render` engine (rlottie, JSON in → frames out) only if the browser preview ever misleads
 
 ## H. Later / optional
 

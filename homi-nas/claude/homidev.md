@@ -1,13 +1,13 @@
 # homidev — asset engine (read by Claude Code on homi-nas)
 
-Last updated: 8 Oct 2026 (v2.3 — step 12: receiver v0.11 GPU guard, asset-pull.sh, LM Studio + LLM models, Wan 2.2 test only). Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED), `receiver-design.md` (v1.0), `homidev-step10-design.md` (v0.1, E1–E8 locked) and `homidev-step8bc-audio-comparison.md` (sound effects + music decisions).
+Last updated: 8 Oct 2026 (v2.4 — Lottie animations on homi-nas, LT1–LT8; v2.3: receiver v0.11 GPU guard, asset-pull.sh, LM Studio + LLM models, Wan 2.2 test only). Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED), `receiver-design.md` (v1.0), `homidev-step10-design.md` (v0.1, E1–E8 locked) and `homidev-step8bc-audio-comparison.md` (sound effects + music decisions).
 
 ## What it is
 - Separate GPU machine on the LAN: `192.168.100.123`, user `homidev`. RTX 5060 Ti 16 GB, 16 GB RAM.
 - Makes assets for projects: **images/graphics, English voice-overs, short sound effects (UI taps, chimes) and background music loops**.
 - NOT for: video (Wan 2.2 5B is installed for **tests only** — no recipe, no project use until Homi approves), Urdu voice (deferred), songs with vocals, pipeline text.
 - Also on homidev (outside the asset pipeline, for Homi's own LLM work): Ollama (gpt-oss:20b, gemma4:12b, qwen3.5:9b, deepseek-r1:14b/8b) and LM Studio headless (`lms`, port 1234, local only). You never start these for a project; the receiver unloads them before every job.
-- Small UI animations are made by you (Claude Code) as code/Lottie, only where required. GIFs only with Homi's approval per request.
+- Small UI animations are made by you (Claude Code) **on homi-nas as Lottie**, only where required (see 'Lottie' below). GIFs only with Homi's approval per request.
 - **Only available when Homi has booted it into Debian** (usually at night). `asset-job.sh` checks this for you; never assume it is up.
 
 ## Current status
@@ -43,6 +43,13 @@ Last updated: 8 Oct 2026 (v2.3 — step 12: receiver v0.11 GPU guard, asset-pull
    - reject: `~/ai-inbox/_tools/asset-integrate.sh reject <job-folder> "<Homi's reason>"`
    - If it prints `REMINDER: this app must show "Powered by Stability AI"`, pass that on to Homi.
 7. Commit the new `assets/` files, `assets/ASSET-REGISTER.md` and (if created) `assets/ATTRIBUTION.md` in the project's normal way (Homi's backup routine applies). Never edit register rows by hand. If the repo has no commits yet, the commit would include other files, or the git name/email looks wrong, ask Homi before committing.
+
+## Lottie animations (homi-nas, agreed 8 Oct 2026, LT1–LT8)
+- Scope: loaders, success ticks, empty states, onboarding micro-motion, splash accents. Original HomiLabs vector work — no AI model, no attribution. homidev is not involved.
+- Make: one Python script per animation in `~/lottie/animations/<project>/<name>.py` using `~/lottie/homilottie.py` (`~/lottie/venv/bin/python <script>`); it writes a job folder `~/ai-inbox/<project>/<job-id>/` like a homidev job. Rules: shapes, fills, strokes, transforms, opacity, trim paths, masks only; **no expressions, images, text layers, effects**; 30 fps max; 512×512; aim ≤ 50 KB. Scripts add shapes background-first (`finish()` fixes the order); screen y grows downward.
+- Check: `~/ai-inbox/_tools/lottie-check.sh <job>` and `stage1-check.sh <job> yes` must PASS; look at the two preview PNGs in `_notes/`; write the usual note.
+- Review: `review-sheet.sh` plays the animations (loops per manifest); Homi decides in chat as always. Approve with `asset-integrate.sh approve <job> <repo> lottie`.
+- Flutter: `lottie` pub package, `Lottie.asset('assets/lottie/<name>.json')`. Keep the source script in the toolset repo (`homi-nas/lottie/animations/`), so every animation can be regenerated.
 
 ## Attribution rule (Stability AI Community Licence)
 - Every app that contains a HomiLabs sound effect or music loop from homidev must show **"Powered by Stability AI"** on its About screen or store description. `asset-integrate.sh` writes this into `assets/ATTRIBUTION.md` the first time.

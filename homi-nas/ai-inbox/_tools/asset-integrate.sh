@@ -1,5 +1,7 @@
 #!/bin/bash
-# asset-integrate.sh v1.1 (8 Oct 2026) — step 10d (M1-M8) + step 11 (A1): act on Homi's Stage 2 decision
+# asset-integrate.sh v1.2 (8 Oct 2026) — LT3: Lottie jobs (asset_type lottie) copy their *_lottie.json (subfolder: lottie);
+#       also runs lottie-check.sh again before approving (must not FAIL).
+# v1.1 (8 Oct 2026) — step 10d (M1-M8) + step 11 (A1): act on Homi's Stage 2 decision
 # v1.1 (A1): assets made under the Stability AI Community Licence (Stable Audio sfx/music) add a one-time
 #       "Powered by Stability AI" line to <repo>/assets/ATTRIBUTION.md and print a reminder. Never blocks.
 #   asset-integrate.sh approve <job-folder> <repo> <subfolder>   copy into <repo>/assets/<subfolder>/ + ASSET-REGISTER.md row
@@ -35,8 +37,11 @@ COMM=$(jq -r '.commercial // "yes"' "$JD/request.json" 2>/dev/null || echo yes)
 LIC=$(jq -r .commercial_ok "$M")
 [ "$COMM" = yes ] && [ "$LIC" != yes ] && stop "LICENCE GATE: commercial request but commercial_ok = $LIC"
 
-# M3: images -> all image files; voice -> OGG only (WAV master stays in the inbox)
-if jq -e '.files[].name|select(endswith(".ogg"))' "$M" >/dev/null; then
+# M3: images -> all image files; voice -> OGG only (WAV master stays in the inbox); lottie -> the JSON
+if [ "$(jq -r .asset_type "$M")" = lottie ]; then
+  "$HOME/ai-inbox/_tools/lottie-check.sh" "$JD" >/dev/null 2>&1 || stop "lottie-check FAIL for $J — run lottie-check.sh to see why"
+  mapfile -t FILES < <(jq -r '.files[].name|select(endswith("_lottie.json"))' "$M")
+elif jq -e '.files[].name|select(endswith(".ogg"))' "$M" >/dev/null; then
   mapfile -t FILES < <(jq -r '.files[].name|select(endswith(".ogg"))' "$M")
 else
   mapfile -t FILES < <(jq -r '.files[].name|select(test("\\.(png|jpe?g|webp|svg)$"))' "$M")

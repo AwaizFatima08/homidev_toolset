@@ -1,5 +1,7 @@
 #!/bin/bash
-# review-sheet.sh v1.1 (8 Oct 2026) — step 10c: one self-contained HTML review page per batch (L1-L7)
+# review-sheet.sh v1.2 (8 Oct 2026) — LT3: Lottie jobs (*_lottie.json) play on the page via an embedded lottie-web
+#       player (~/ai-inbox/_tools/lib/lottie.min.js, MIT); loops per manifest settings.loop; chip shows fps/length.
+# v1.1 (8 Oct 2026) — step 10c: one self-contained HTML review page per batch (L1-L7)
 # v1.1 (step 11, A3): music players loop (hear the join); music cards show BPM + loop length.
 # Usage: review-sheet.sh <project> [job-folder ...]   (no folders = every job waiting in ~/ai-inbox/<project>/)
 # Claude's visual note per job: ~/ai-inbox/<project>/_notes/<job-id>.txt (optional)
@@ -7,7 +9,7 @@
 set -u
 [ $# -ge 1 ] || { echo "usage: review-sheet.sh <project> [job-folder ...]"; exit 2; }
 PROJECT=$1; shift
-BASE="$HOME/ai-inbox/$PROJECT"; S1="$HOME/ai-inbox/_tools/stage1-check.sh"
+BASE="$HOME/ai-inbox/$PROJECT"; S1="$HOME/ai-inbox/_tools/stage1-check.sh"; LW="$HOME/ai-inbox/_tools/lib/lottie.min.js"; NEEDLW=0
 if [ $# -gt 0 ]; then JOBS=("$@"); else mapfile -t JOBS < <(find "$BASE" -mindepth 2 -maxdepth 2 -name manifest.json -printf '%h\n' 2>/dev/null | sort); fi
 [ ${#JOBS[@]} -gt 0 ] || { echo "no jobs found for project $PROJECT"; exit 1; }
 mkdir -p "$BASE"; OUT="$BASE/review-$(date +%Y%m%d-%H%M).html"
@@ -29,11 +31,12 @@ audio{width:100%}.k{color:var(--muted);font-size:13px;margin:10px 0 2px}.v{margi
 .res{font-weight:700;margin-top:6px}.pass{color:var(--pass)}.warn{color:var(--warn)}.fail{color:var(--fail)}
 .lines{font:13px/1.45 ui-monospace,Menlo,monospace;margin:4px 0 0;padding:0;list-style:none}
 .note{border-left:3px solid var(--line);padding:4px 10px;margin:4px 0 0;white-space:pre-wrap}
+.lottie{width:100%;aspect-ratio:1;border-radius:8px;border:1px solid var(--line);background:repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 0 0/16px 16px;cursor:pointer}
 footer{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
 </style></head><body><main>
 HEAD
 echo "<h1>Asset review — $(printf '%s' "$PROJECT" | esc)</h1>"
-echo "<p class=\"sub\">${#JOBS[@]} job(s) · made $(date '+%d %b %Y, %H:%M') on homi-nas · review-sheet.sh v1.1</p>"
+echo "<p class=\"sub\">${#JOBS[@]} job(s) · made $(date '+%d %b %Y, %H:%M') on homi-nas · review-sheet.sh v1.2</p>"
 n=0
 for D in "${JOBS[@]}"; do
   n=$((n+1)); M="$D/manifest.json"; J=$(basename "$D")
@@ -51,6 +54,9 @@ for D in "${JOBS[@]}"; do
       *.jpg|*.jpeg) echo "<img alt=\"$f\" src=\"data:image/jpeg;base64,$(base64 -w0 "$D/$f")\">";;
       *.ogg) echo "<audio controls$LOOP preload=\"metadata\" src=\"data:audio/ogg;base64,$(base64 -w0 "$D/$f")\"></audio>";;
       *.wav) jq -e '.files[].name|select(endswith(".ogg"))' "$M" >/dev/null || echo "<audio controls src=\"data:audio/wav;base64,$(base64 -w0 "$D/$f")\"></audio>";;
+      *_lottie.json) NEEDLW=1; LP=$(jq -r 'if .settings.loop == false then "false" else "true" end' "$M")
+        echo "<div class=\"lottie\" data-loop=\"$LP\" id=\"lt$n\"></div><script type=\"application/json\" id=\"ltd$n\">$(cat "$D/$f")</script>"
+        echo "<p class=\"k\">Animation: $(jq -r '"\(.settings.fps) fps · \(.settings.seconds) s · \(.settings.width)x\(.settings.height) · " + (if .settings.loop == false then "plays once (click to replay)" else "loops" end)' "$M")</p>";;
     esac
   done
   echo "</div><div>"
@@ -71,6 +77,13 @@ for D in "${JOBS[@]}"; do
   if [ -s "$NOTE" ]; then echo "<p class=\"k\">Claude's note</p><p class=\"note\">$(esc < "$NOTE")</p>"; fi
   echo "</div></section>"
 done
+if [ "$NEEDLW" = 1 ] && [ -f "$LW" ]; then
+  echo "<script>"; cat "$LW"; echo "</script>"
+  cat <<'LJS'
+<script>document.querySelectorAll('.lottie').forEach(function(el){var d=JSON.parse(document.getElementById('ltd'+el.id.slice(2)).textContent);
+var a=lottie.loadAnimation({container:el,renderer:'svg',loop:el.dataset.loop==='true',autoplay:true,animationData:d});el.addEventListener('click',function(){a.goToAndPlay(0,true);});});</script>
+LJS
+fi
 cat <<'FOOT'
 <footer><strong>How to decide:</strong> reply in the chat with Claude, e.g. <em>"approve 1, 3; reject 2: too busy"</em>.
 Nothing on this page changes any file. Only approved assets are added to a project (asset-integrate.sh).</footer>
