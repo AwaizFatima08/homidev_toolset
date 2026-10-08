@@ -72,3 +72,10 @@ Read this first, then `docs/homidev-toolset-checklist.md` (full history, every f
 2. Check the live state (read-only) and compare with section 3:
    `curl -s -H "X-Receiver-Token: $(cat ~/.config/asset-receiver/token)" http://192.168.100.123:8190/health` and `sha256sum ~/ai-inbox/_tools/*.sh ~/.claude/homidev.md`
 3. Ask Homi which open item to take; propose numbered decisions; wait for "agreed".
+
+## 7. Update after the evening session (8 Oct 2026, Claude Code) — read with section G2 of the checklist
+- **New on homidev:** LM Studio headless (`~/.lmstudio`, `lms`, 127.0.0.1:1234, not on boot) with `qwen3.5-9b`; Ollama `qwen3.5:9b`, `deepseek-r1:14b`, `deepseek-r1:8b`; Wan 2.2 TI2V-5B + VAE + UMT5 in ComfyUI (registered, **tests only**). homi-nas logs in to homidev with its normal key now (Homi's decision).
+- **New on homi-nas:** `stage1-check.sh` v0.7, `asset-job.sh` v1.2, `asset-pull.sh` v1.0, `~/.claude/homidev.md` v2.3. Docs: `homidev-pipeline-review-2026-10-08.md`, `homidev-llm-test-sheet.md`, `docs/llm-test/results-20261008-1659/`.
+- **Waiting for Homi (sudo):** receiver v0.11 step 3 (paste in the chat of 8 Oct; `~/receiver/receiver.py.new` already tested), then D4 (ComfyUI/Ollama local-only). Then one real image job to prove v0.11.
+- **Homi decides:** video (keep tests only, or T5 recipe after a 1280×704/5 s test), hardware vs online (test sheet §3), Urdu quality column, chat models in MODEL-REGISTER or not.
+- Lesson: Claude Code's auto-mode safety filter blocks edits to the production receiver and service restarts even when Homi says "allowed" → those steps are prepared as one paste for Homi; everything else runs from homi-nas over SSH.

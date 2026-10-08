@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# homidev-backup.sh - homi-nas: one-command backup of the homidev toolset into git (step 9f-4, v1.0, 1 Oct 2026)
+# homidev-backup.sh - homi-nas: one-command backup of the homidev toolset into git (step 9f-4, v1.1, 8 Oct 2026)
+# v1.1 (T8, review W3): delete-guard - stops if the commit would DELETE any tracked file (the 7 Oct checklist slip);
+#       pass --allow-delete only when a deletion is intended. Also copies docs/ from the repo itself (nothing to do: docs live here).
 # Lives in ~/ai-inbox/_tools/. Run at the end of a session:   ~/ai-inbox/_tools/homidev-backup.sh ["commit message"]
 #
 # 1. git pull (so we never push over newer work)
@@ -11,6 +13,7 @@
 # docs/ is NOT copied by this script: put updated docs into ~/homidev_toolset/docs/ yourself first.
 # Google Drive stays a separate step (done by Claude at session close).
 set -u
+ALLOW_DELETE=no; [ "${1:-}" = "--allow-delete" ] && { ALLOW_DELETE=yes; shift; }
 REPO="$HOME/homidev_toolset"
 HD="homidev@192.168.100.123"
 TOKEN_FILE="$HOME/.config/asset-receiver/token"
@@ -67,7 +70,13 @@ if [ -n "$problem" ]; then
   git reset -q
   stop "$problem -- nothing committed. Fix it, then run again."
 fi
-echo "   PASS  no token, no private key, nothing over ${MAX_KB} KB"
+deleted=$(git diff --cached --name-only --diff-filter=D)
+if [ -n "$deleted" ] && [ "$ALLOW_DELETE" != yes ]; then
+  git reset -q
+  stop "this commit would DELETE tracked files:$(printf '\n   %s' $deleted)
+   Nothing committed. If that is intended, run again with --allow-delete; otherwise restore them first."
+fi
+echo "   PASS  no token, no private key, nothing over ${MAX_KB} KB, no deletions"
 
 echo "== 5. changes"
 git status --short

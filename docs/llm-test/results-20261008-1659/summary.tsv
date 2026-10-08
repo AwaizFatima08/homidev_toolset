@@ -1,0 +1,21 @@
+model	prompt	seconds_total	load_s	think_tokens	answer_tokens	tokens_per_s	gpu_mib	placement
+gpt-oss:20b	1-schedule	83.6	10.3	20433 chars	6643	91.3	12959	fits GPU
+gpt-oss:20b	2-dose	44.2	0	12830 chars	4057	92.2	12959	fits GPU
+gpt-oss:20b	3-coins	13.8	0	1939 chars	1275	92.9	12959	fits GPU
+gpt-oss:20b	4-urdu	6.2	0	1619 chars	574	94	12959	fits GPU
+gpt-oss:20b	5-dart	22.3	0	6425 chars	2065	93	12959	fits GPU
+qwen3.5:9b	1-schedule	124.3	4.5	24595 chars	8000	66.8	7029	fits GPU
+qwen3.5:9b	2-dose	119.6	0	26630 chars	8000	67	7029	fits GPU
+qwen3.5:9b	3-coins	58.2	0	9903 chars	3936	67.9	7029	fits GPU
+qwen3.5:9b	4-urdu	72.1	0	14871 chars	4851	67.5	7029	fits GPU
+qwen3.5:9b	5-dart	119.5	0	28417 chars	8000	67	7029	fits GPU
+deepseek-r1:14b	1-schedule	119.6	5.7	12867 chars	4819	42.3	10517	fits GPU
+deepseek-r1:14b	2-dose	100.6	0	12954 chars	4262	42.6	10517	fits GPU
+deepseek-r1:14b	3-coins	46.2	0	5232 chars	1998	43.7	10517	fits GPU
+deepseek-r1:14b	4-urdu	24.1	0	4674 chars	1054	44.2	10505	fits GPU
+deepseek-r1:14b	5-dart	87.1	0	10682 chars	3727	42.9	10519	fits GPU
+deepseek-r1:8b	1-schedule	118.8	3.7	27077 chars	8000	70.4	6635	fits GPU
+deepseek-r1:8b	2-dose	114.1	0	26216 chars	8000	70.4	6623	fits GPU
+deepseek-r1:8b	3-coins	83.4	0	18269 chars	5984	72.2	6635	fits GPU
+deepseek-r1:8b	4-urdu	12.5	0	1534 chars	934	77.6	6635	fits GPU
+deepseek-r1:8b	5-dart	113.7	0	32559 chars	8000	70.4	6637	fits GPU

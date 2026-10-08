@@ -1,5 +1,7 @@
 #!/bin/bash
-# asset-job.sh v1.1 (5 Oct 2026) — step 10b: Stage 1 FAIL -> job moved to ~/ai-inbox/_rejected/<job>/ + reason.txt
+# asset-job.sh v1.2 (8 Oct 2026) — review D1: wait 15 min (receiver timeout 10 min + queue/unload); on timeout
+#   the job is NOT failed - it may still finish on homidev; pull it later with asset-pull.sh <project> <job-id>
+# v1.1 (5 Oct 2026) — step 10b: Stage 1 FAIL -> job moved to ~/ai-inbox/_rejected/<job>/ + reason.txt
 # v1.0 (5 Oct 2026) — step 10a: request one asset from homidev
 # Usage: asset-job.sh <project> <recipe> <commercial: yes|no> <inputs.json>
 # submit -> wait -> pull (read-only key) -> stage1-check.sh. Last line: RESULT: PASS <folder> | RESULT: FAIL <reason>
@@ -40,13 +42,16 @@ done
 [ "$CODE" = 200 ] || end 3 "FAIL no free job number this minute"
 echo "submitted $J (commercial_ok: $(jq -r .commercial_ok "$BODY"))"
 
-# F4: wait up to 10 min
-for _ in $(seq 1 120); do
+# F4: wait up to 15 min (receiver gives a job 10 min + up to 30 s unload + queue time)
+for _ in $(seq 1 180); do
   S=$(curl -s -m 10 -H "$HDR" "$R/jobs/$J" | jq -r '.state // "unknown"')
   [ "$S" = "done" ] || [ "$S" = failed ] && break
   sleep 5
 done
-[ "$S" = "done" ] || end 2 "FAIL job $J state=$S: $(curl -s -m 10 -H "$HDR" "$R/jobs/$J" | jq -r '.error // "timeout after 10 min"')"
+if [ "$S" != "done" ] && [ "$S" != failed ]; then
+  end 2 "FAIL gave up waiting after 15 min; job $J is still '$S' on homidev - check later with: asset-pull.sh $PROJECT $J"
+fi
+[ "$S" = "done" ] || end 2 "FAIL job $J state=$S: $(curl -s -m 10 -H "$HDR" "$R/jobs/$J" | jq -r '.error // "no error text"')"
 
 DEST="$HOME/ai-inbox/$PROJECT/$J"
 mkdir -p "$DEST" && \

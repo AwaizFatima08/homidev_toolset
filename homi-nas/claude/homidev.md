@@ -1,15 +1,17 @@
 # homidev — asset engine (read by Claude Code on homi-nas)
 
-Last updated: 8 Oct 2026 (v2.2 — step 11: sound effects, music loops, voice limiter, attribution rule). Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED), `receiver-design.md` (v1.0), `homidev-step10-design.md` (v0.1, E1–E8 locked) and `homidev-step8bc-audio-comparison.md` (sound effects + music decisions).
+Last updated: 8 Oct 2026 (v2.3 — step 12: receiver v0.11 GPU guard, asset-pull.sh, LM Studio + LLM models, Wan 2.2 test only). Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED), `receiver-design.md` (v1.0), `homidev-step10-design.md` (v0.1, E1–E8 locked) and `homidev-step8bc-audio-comparison.md` (sound effects + music decisions).
 
 ## What it is
 - Separate GPU machine on the LAN: `192.168.100.123`, user `homidev`. RTX 5060 Ti 16 GB, 16 GB RAM.
 - Makes assets for projects: **images/graphics, English voice-overs, short sound effects (UI taps, chimes) and background music loops**.
-- NOT for: video, Urdu voice (deferred), songs with vocals, pipeline text. Small UI animations are made by you (Claude Code) as code/Lottie, only where required. GIFs only with Homi's approval per request.
+- NOT for: video (Wan 2.2 5B is installed for **tests only** — no recipe, no project use until Homi approves), Urdu voice (deferred), songs with vocals, pipeline text.
+- Also on homidev (outside the asset pipeline, for Homi's own LLM work): Ollama (gpt-oss:20b, gemma4:12b, qwen3.5:9b, deepseek-r1:14b/8b) and LM Studio headless (`lms`, port 1234, local only). You never start these for a project; the receiver unloads them before every job.
+- Small UI animations are made by you (Claude Code) as code/Lottie, only where required. GIFs only with Homi's approval per request.
 - **Only available when Homi has booted it into Debian** (usually at night). `asset-job.sh` checks this for you; never assume it is up.
 
 ## Current status
-- Receiver v0.10 (service `asset-receiver`): validates every request, applies the licence gate, unloads Ollama before every ComfyUI job, cleans up audio (sound effects, music loops, voice levelling).
+- Receiver v0.11 (service `asset-receiver`): validates every request, applies the licence gate, unloads Ollama **and LM Studio** before every ComfyUI job, then checks the GPU is free (a job fails with `GPU busy: … MiB` if something else holds it — tell Homi, do not retry in a loop), strips ComfyUI's hidden prompt/workflow text from PNGs, cleans up audio (sound effects, music loops, voice levelling).
 - Approved recipes (8 Oct 2026):
 
 | Recipe | Makes | Inputs | Notes |
@@ -30,6 +32,7 @@ Last updated: 8 Oct 2026 (v2.2 — step 11: sound effects, music loops, voice li
    - `yes` = commercial project (default for every HomiLabs app). The licence gate decides — never work around a refusal.
    - **Sound effects and music: always make 3 versions** — the same prompt with 3 different `seed` values (3 separate calls). Homi picks by ear.
    - Read the **last line**: `RESULT: PASS <folder>` / `PASS with warnings <folder>` / `FAIL <reason>`. Exit 3 = refused or homidev unreachable → tell Homi and **stop**; no retry loops. A Stage 1 FAIL is moved to `~/ai-inbox/_rejected/` automatically.
+   - `asset-job.sh` waits 15 min. If it says the job is **still running on homidev**, do not resubmit: later run `~/ai-inbox/_tools/asset-pull.sh <project> <job-id>` once, which pulls and Stage-1-checks the finished job.
 3. **Check every asset yourself and write a short note** to `~/ai-inbox/<project>/_notes/<job-id>.txt` (never inside the job folder):
    - images: open the PNG — matches the brief? extra objects, garbled text, odd hands, frame/tile in the background?
    - audio (voice, sound effects, music): you cannot listen — note the Stage 1 facts instead (length, loudness, any WARN lines; for music the BPM and loop length) and say plainly that Homi must listen.

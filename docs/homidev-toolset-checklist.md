@@ -213,6 +213,17 @@ Purpose (Homi): experiment with LLMs and use the results to decide on hardware u
 - [ ] L6 Homi sends the full "max" wishlist → one ordered plan
 - [ ] Test sheet: per model record speed (tokens/s), VRAM used, fits on GPU or spills, quality score → basis for the hardware / cloud decision
 
+**Step 12 session 1 (8 Oct 2026 evening, Claude Code, S12-1..S12-6 agreed):**
+  - [x] homi-nas → homidev key login (`ssh-copy-id`, Homi's decision: both machines private)
+  - [x] L2 LM Studio headless (llmster 0.0.25-1, CUDA 12 engine) in `~/.lmstudio`, server 127.0.0.1:1234, JIT TTL 600 s (`settings.json.bak-install`); daemon does **not** start on boot (`lms daemon up && lms server start`). Model `qwen3.5-9b` (lmstudio-community Q4_K_M + vision mmproj, sha256 OK, `~/model-review/lmstudio/qwen3.5-9b/`); LM Studio's own proxy download crawled at 445 KB/s → fetched from HF directly and `lms import --copy`; stale download job cleared (`download-jobs-info.json.bak-20261008`). Load 4 s, 7.1 GB, unload OK.
+  - [x] L3 Ollama: `qwen3.5:9b` (Apache 2.0, 5.8 GB GPU, 67 tok/s) · `deepseek-r1:14b` (MIT, 10.5 GB, 43 tok/s) · `deepseek-r1:8b` (MIT, 6.6 GB, 71 tok/s). All fit the GPU → L5 not needed. Chat models **not** in MODEL-REGISTER (G decision 5 Oct) — Homi to confirm vs L3.
+  - [x] L4 fair test: `~/llm-test/run-llm-test-v2.sh` v2.0 (`aed5070c…`), results `results-20261008-1659` (copied to `docs/llm-test/`), sheet `docs/homidev-llm-test-sheet.md`. gpt-oss:20b clear winner; qwen3.5:9b + deepseek-r1:8b hit the 8000-token ceiling on 3/5 prompts (no answer); deepseek-r1:14b answered the Urdu prompt in English. Homi: Urdu column + hardware decision open.
+  - [x] S12-4 video test: Wan 2.2 TI2V-5B + VAE + UMT5 fp8 (Comfy-Org repackage, Apache 2.0, sha256 OK, `~/model-review/wan2.2/` keeps LICENSE/SOURCE/SHA256SUMS) → ComfyUI folders; models.json (`fababc10…`, 15 entries) + MODEL-REGISTER.md (`72f4e3b1…`) rows added, backups `.bak-20261008`. Test clip 01 (832×480, 49 f, 20 steps, 74 s, 14.7 GB peak): style right, almost no motion. API workflow in `homidev/wan22-test/`. **Still "tests only" — design v1.1 line unchanged until Homi decides.**
+  - [x] Pipeline review `docs/homidev-pipeline-review-2026-10-08.md` (D1–D4, W1–W5, T1–T8). Fixed today: **stage1-check v0.7** (`d9da6f97…`, PNG hidden-workflow FAIL/WARN by receiver version, size vs manifest, alpha WARN), **asset-job v1.2** (`b386213e…`, 15-min wait, "still running" message), **asset-pull v1.0** (`2e2459e0…`); backups `.bak-v0.6` / `.bak-v1.1`. **Receiver v0.11** built + tested on homidev (`receiver.py.new`, sha `a2d03b6a…`, step 2 test OK) — **step 3 install needs Homi's sudo paste** (Claude's auto-mode filter blocks service restarts). homidev.md **v2.3** (backup `.bak-v2.2`).
+  - [ ] D4 bind ComfyUI + Ollama to 127.0.0.1 (Homi agreed; sudo paste pending)
+  - [ ] After receiver v0.11: one real image job → PNG without text chunk, `gpu_used_mib_before` in status.json
+  - [ ] T4 icon cut-out recipe · T6 audit v2.2 · T8 backup delete-guard · T5 video recipe only after Homi's decision
+
 ## H. Later / optional
 
 - [x] ~~qwen3:14b (test for Urdu content)~~ — not needed for now: Gemma 4 12B writes good Urdu (5 Oct)

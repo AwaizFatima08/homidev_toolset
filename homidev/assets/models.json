@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-07",
+  "updated": "2026-10-08",
   "note": "Machine copy of MODEL-REGISTER.md. Always update both together. File paths are relative to /home/homidev.",
   "models": {
     "sdxl-turbo": {
@@ -73,6 +73,24 @@
       "licence": "Stability AI Community Licence (free while HomiLabs revenue < US$1M/yr; registered 2026-10-06 by HomiLabs Solutions SMC Pvt Ltd; apps show 'Powered by Stability AI')",
       "commercial_ok": "yes",
       "sha256": "da85866b11b01d0694d990785f6abbd79c8064df1b0e6f8aea52935e0ef84b64"
+    },
+    "wan2.2-ti2v-5b": {
+      "file": "ComfyUI/models/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "456f901338bd9eadbded3828b819109a9b68e8a525ca5cf8d0049a69fcfeca1e"
+    },
+    "wan2.2-vae": {
+      "file": "ComfyUI/models/vae/wan2.2_vae.safetensors",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156"
+    },
+    "umt5-xxl-fp8-text-encoder": {
+      "file": "ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68"
     }
   }
 }
