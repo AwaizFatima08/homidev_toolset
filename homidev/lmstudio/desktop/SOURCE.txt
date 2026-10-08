@@ -1,0 +1,1 @@
+Source: https://installers.lmstudio.ai/linux/x64/0.4.25-1/LM-Studio-0.4.25-1-x64.AppImage (official), size 1012171087 bytes, our sha256 eca46744…f07c53 (no published checksum), downloaded 2026-10-09; installed to ~/Applications per LG1

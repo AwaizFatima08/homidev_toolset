@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=LM Studio
+Comment=Local LLM chat and model manager (GUI); headless daemon pauses while open
+Exec=/home/homidev/Applications/lm-studio-gui.sh %U
+Icon=/home/homidev/.local/share/icons/lm-studio.png
+Terminal=false
+Categories=Development;Utility;
+StartupWMClass=ai.elementlabs.lmstudio

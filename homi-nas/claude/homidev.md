@@ -6,7 +6,7 @@ Last updated: 9 Oct 2026 (v2.5 — helper tools S1–S11: status, regression, re
 - Separate GPU machine on the LAN: `192.168.100.123`, user `homidev`. RTX 5060 Ti 16 GB, 16 GB RAM.
 - Makes assets for projects: **images/graphics, English voice-overs, short sound effects (UI taps, chimes) and background music loops**.
 - NOT for: video (Wan 2.2 5B is installed for **tests only** — no recipe, no project use until Homi approves), Urdu voice (deferred), songs with vocals, pipeline text.
-- Also on homidev (outside the asset pipeline, for Homi's own LLM work): Ollama (gpt-oss:20b, gemma4:12b, qwen3.5:9b, deepseek-r1:14b/8b) and LM Studio headless (`lms`, port 1234, local only). You never start these for a project; the receiver unloads them before every job.
+- Also on homidev (outside the asset pipeline, for Homi's own LLM work): Ollama (gpt-oss:20b, gemma4:12b, qwen3.5:9b, deepseek-r1:14b/8b) and LM Studio (headless `lms` at boot; the desktop GUI from the XFCE dock replaces it while open — one at a time, port 1234 local only). You never start these for a project; the receiver unloads them before every job.
 - Small UI animations are made by you (Claude Code) **on homi-nas as Lottie**, only where required (see 'Lottie' below). GIFs only with Homi's approval per request.
 - **Only available when Homi has booted it into Debian** (usually at night). `asset-job.sh` checks this for you; never assume it is up.
 
