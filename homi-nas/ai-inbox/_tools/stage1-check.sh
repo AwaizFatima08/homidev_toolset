@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# stage1-check.sh <job-folder> <commercial-project: yes|no>   (v0.5, 7 Oct 2026)
+# stage1-check.sh <job-folder> <commercial-project: yes|no>   (v0.6, 8 Oct 2026)
+# v0.6 (MU6, step 8c-4c): asset_type "music" gets its own rules: manifest postprocess.type = music; deliverable
+#       OGG stereo, length = whole bars (postprocess.loop_sec, +/- 0.05 s, and bars x 240/bpm), loudness -16 +/- 1 LUFS,
+#       true peak <= -1 dB, no silence > 0.1 s at start or end, no hidden workflow text; master = info line only;
+#       clipping counted by the receiver shown as info (MU3 known limit). Image/voice/sfx checks unchanged.
 # v0.5 (K1-K6, step 8b-5c): asset_type "sfx" gets its own rules: deliverable 0.02-10 s, mono, true peak
 #       -4..-1 dB (above -1 FAIL, below -4 WARN), loudness info only, start silence > 0.1 s WARN, end silence
 #       > 0.1 s FAIL, no hidden workflow text in any audio file, manifest postprocess.type = sfx;
@@ -41,7 +45,7 @@ done
 
 TYPE=$(jq -r .asset_type manifest.json)
 # ---- audio (G1): measured here, not copied from the manifest (voice and other non-sfx audio)
-[ "$TYPE" != "sfx" ] && for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(wav|ogg|mp3)$'); do
+[ "$TYPE" != "sfx" ] && [ "$TYPE" != "music" ] && for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(wav|ogg|mp3)$'); do
   [ -f "$a" ] || continue
   if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then bad "$a: ffmpeg/ffprobe not installed on this machine"; continue; fi
   dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$a")
@@ -94,6 +98,44 @@ if [ "$TYPE" = "sfx" ]; then
     if [ "$last" = "silence_start" ] || { [ -n "$lend" ] && awk -v e="$lend" -v d="$dur" 'BEGIN{exit !(d-e<0.05)}'; }; then bad "$a ends with > 0.1 s of silence (trim did not run?)"; else ok "$a no silence at end"; fi
   done
   [ "$deliver" -ge 1 ] && ok "$deliver sfx deliverable(s) checked" || bad "no sfx deliverable (OGG) in job"
+fi
+
+# ---- music loops (MU6): own rules, measured here
+if [ "$TYPE" = "music" ]; then
+  if [ "$(jq -r '.postprocess.type // empty' manifest.json)" = "music" ]; then
+    bpm=$(jq -r .postprocess.bpm manifest.json); bars=$(jq -r .postprocess.bars manifest.json); loop=$(jq -r .postprocess.loop_sec manifest.json)
+    ok "music clean-up ran ($bars bars at $bpm BPM = ${loop}s loop)"
+    awk -v l="$loop" -v b="$bars" -v t="$bpm" 'BEGIN{exit !(b>=4 && t>0 && (l-b*240/t)^2 < 0.0001)}' && ok "loop length is a whole number of bars" || bad "loop ${loop}s is not $bars bars at $bpm BPM"
+    echo "        clipping in the model output (master): $(jq -r '.postprocess.clip_events_in_master // "?"' manifest.json) event(s) (known limit, info only)"
+  else bad "manifest: postprocess.type is not music (clean-up did not run)"; loop=""; fi
+  deliver=0
+  for a in $(jq -r '.files[].name' manifest.json | grep -E '\.(ogg|flac|wav|mp3)$'); do
+    [ -f "$a" ] || continue
+    if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then bad "$a: ffmpeg/ffprobe not installed on this machine"; continue; fi
+    if grep -qa 'class_type' "$a" || ffprobe -v error -show_entries format_tags:stream_tags -of default=nw=1 "$a" | grep -qiE '^TAG:(prompt|workflow)='; then
+      bad "$a contains hidden workflow info"; else ok "$a no hidden workflow info"; fi
+    dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$a")
+    ch=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of csv=p=0 "$a")
+    case "$a" in *_master.*) echo "        master (original, not judged on level): ${dur}s, ${ch} channel(s)"; continue ;; esac
+    deliver=$((deliver+1))
+    [ "$ch" = "2" ] && ok "$a stereo" || bad "$a has ${ch:-?} channel(s) (music must be stereo)"
+    if [ -n "$loop" ] && awk -v d="$dur" -v l="$loop" 'BEGIN{exit !(d-l<=0.05 && l-d<=0.05)}'; then ok "$a length ${dur}s = loop"
+    else bad "$a length ${dur:-?}s does not match the loop (${loop:-?}s +/- 0.05)"; fi
+    meter=$(ffmpeg -nostdin -hide_banner -i "$a" -af ebur128=peak=true -f null - 2>&1)
+    lufs=$(echo "$meter" | grep -oP 'I:\s+\K-?[0-9.]+(?= LUFS)' | tail -n1)
+    peak=$(echo "$meter" | grep -oP 'Peak:\s+\K(-?[0-9.]+|-inf)(?= dBFS)' | tail -n1)
+    awk -v l="$lufs" 'BEGIN{exit !(l!="" && l>=-17 && l<=-15)}' && ok "$a loudness $lufs LUFS" || bad "$a loudness ${lufs:-?} LUFS (target -16 +/- 1)"
+    if [ -z "$peak" ] || [ "$peak" = "-inf" ]; then bad "$a is silent (no peak)"
+    elif awk -v p="$peak" 'BEGIN{exit !(p<=-1.0)}'; then ok "$a true peak $peak dBFS"
+    else bad "$a true peak $peak dBFS (limit -1)"; fi
+    sd=$(ffmpeg -nostdin -hide_banner -i "$a" -af silencedetect=noise=-50dB:d=0.1 -f null - 2>&1)
+    lead=$(echo "$sd" | grep -oP 'silence_start: \K-?[0-9.]+' | head -n1)
+    last=$(echo "$sd" | grep -oP 'silence_(start|end)' | tail -n1)
+    lend=$(echo "$sd" | grep -oP 'silence_end: \K[0-9.]+' | tail -n1)
+    if [ -n "$lead" ] && awk -v s="$lead" 'BEGIN{exit !(s<0.05)}'; then bad "$a starts with > 0.1 s of silence (gap at the loop join)"; else ok "$a no silence at start"; fi
+    if [ "$last" = "silence_start" ] || { [ -n "$lend" ] && awk -v e="$lend" -v d="$dur" 'BEGIN{exit !(d-e<0.05)}'; }; then bad "$a ends with > 0.1 s of silence (gap at the loop join)"; else ok "$a no silence at end"; fi
+  done
+  [ "$deliver" -ge 1 ] && ok "$deliver music deliverable(s) checked" || bad "no music deliverable (OGG) in job"
 fi
 
 # ---- voice script check (G2): mismatch is a warning for Homi, not a failure

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-06",
+  "updated": "2026-10-07",
   "note": "Machine copy of MODEL-REGISTER.md. Always update both together. File paths are relative to /home/homidev.",
   "models": {
     "sdxl-turbo": {
@@ -67,6 +67,12 @@
       "licence": "Gemma Terms of Use",
       "commercial_ok": "yes",
       "sha256": "1e1eba25be8872edb0d3c6335c6658fd6388e7b14b60da6e454e404cfcd8150e"
+    },
+    "stable-audio-3-small-music": {
+      "file": "ComfyUI/models/checkpoints/stable_audio_3_small_music.safetensors",
+      "licence": "Stability AI Community Licence (free while HomiLabs revenue < US$1M/yr; registered 2026-10-06 by HomiLabs Solutions SMC Pvt Ltd; apps show 'Powered by Stability AI')",
+      "commercial_ok": "yes",
+      "sha256": "da85866b11b01d0694d990785f6abbd79c8064df1b0e6f8aea52935e0ef84b64"
     }
   }
 }

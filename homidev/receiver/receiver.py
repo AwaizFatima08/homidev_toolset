@@ -1,4 +1,9 @@
 # receiver.py - homidev asset receiver
+# v0.9.1 (8 Oct 2026) - step 8c-5 fix: music loudness step writes a WAV first, then encodes the OGG.
+#   Encoding straight from loudnorm (when it falls back to "dynamic") gave OGGs whose header claimed
+#   67 ms more than the audio (Stage 1 FAIL). Records which loudness mode was used.
+# v0.9 (8 Oct 2026) - step 8c-4 (MU2-MU4): "music" clean-up for recipes with settings.postprocess = "music":
+#   loop cut at whole bars (inputs.bpm) in the first 75 %, 0.5 s blend into the start, -16 LUFS, stereo Opus OGG
 # v0.8 (7 Oct 2026) - step 8b-6 (D1): sfx clean-up can also trim silence BEFORE the sound
 #   (settings.lead_keep_s, e.g. 0.01 = keep 10 ms); recipes without it behave exactly as v0.7
 # v0.7 (7 Oct 2026) - step 8b-5a (V1-V6): ComfyUI audio outputs; "sfx" clean-up
@@ -32,7 +37,7 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-VERSION = "0.8"
+VERSION = "0.9.1"
 HOME = Path.home()
 ASSETS = HOME / "assets"
 JOBS_DIR = ASSETS / "jobs"
@@ -342,9 +347,14 @@ def run_comfyui(job_dir: Path, req: dict, recipe: dict) -> dict:
         ogg, post = sfx_postprocess(job_dir, job_id, master, recipe["settings"])
         files.append({"name": ogg.name, "sha256": sha256(ogg), "format": "ogg",
                       "size": ogg.stat().st_size, **audio_info(ogg)})
+    elif recipe.get("settings", {}).get("postprocess") == "music":
+        master = job_dir / files[0]["name"]
+        ogg, post = music_postprocess(job_dir, job_id, master, recipe["settings"], inputs["bpm"])
+        files.append({"name": ogg.name, "sha256": sha256(ogg), "format": "ogg",
+                      "size": ogg.stat().st_size, **audio_info(ogg)})
     return {"inputs": inputs, "files": files, "postprocess": post,
             "tool": "ComfyUI " + comfyui_status().removeprefix("ok (").rstrip(")")
-                    + (" + ffmpeg (sfx clean-up)" if post else "")}
+                    + (f" + ffmpeg ({post['type']} clean-up)" if post else "")}
 
 
 AUDIO_EXTS = {".flac", ".wav", ".mp3", ".ogg", ".opus"}
@@ -393,6 +403,58 @@ def sfx_postprocess(job_dir: Path, job_id: str, master: Path, s: dict):
     return ogg, {"type": "sfx", "trimmed_duration_sec": round(dur, 3), "gain_db": gain,
                  "peak_target_db": peak,
                  **({"lead_keep_s": lead} if lead is not None else {})}
+
+
+def music_postprocess(job_dir: Path, job_id: str, master: Path, s: dict, bpm: int):
+    """MU2-MU4 (locked 8 Oct 2026): loop = largest whole number of bars inside the first
+    loop_window (75 %) of the clip, so the model's ending is skipped; the music just after
+    the cut is blended into the loop start (crossfade_s); loudness -16 LUFS; stereo Opus OGG."""
+    window, xf = s.get("loop_window", 0.75), s.get("crossfade_s", 0.5)
+    min_bars, lufs, tp = s.get("min_bars", 4), s.get("loudness_lufs", -16), s.get("true_peak_db", -1.5)
+    kbps = s.get("opus_kbps", 128)
+    ogg = job_dir / f"{job_id}_music.ogg"
+    dur = float(json.loads(run_cmd(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                    "-of", "json", master], 60, "ffprobe").stdout)["format"]["duration"])
+    bar = 240.0 / bpm                       # 4 beats per bar
+    bars = int((dur * window) // bar)
+    if bars < min_bars:
+        raise RuntimeError(f"music clean-up: only {bars} whole bars of {bar:.2f} s fit in "
+                           f"{dur * window:.1f} s (need {min_bars}) - ask for more seconds or a faster bpm")
+    loop = round(bars * bar, 4)
+    st = run_cmd(["ffmpeg", "-nostdin", "-hide_banner", "-i", master, "-af",
+                  "astats=measure_perchannel=none:measure_overall=Peak_level+Peak_count",
+                  "-f", "null", "-"], 60, "clip count").stderr
+    pk, pc = re.findall(r"Peak level dB:\s+(-?[\d.]+|-inf)", st), re.findall(r"Peak count:\s+(\d+)", st)
+    clips = int(pc[-1]) if pk and pc and pk[-1] != "-inf" and float(pk[-1]) >= -0.01 else 0
+    # the xf seconds just after the cut fade out while the loop start fades in (linear),
+    # so the end of the loop flows into its own beginning; the file is read twice on purpose
+    graph = (f"[0:a]atrim={loop}:{loop + xf},asetpts=PTS-STARTPTS[tail];"
+             f"[1:a]atrim=0:{loop},asetpts=PTS-STARTPTS[body];"
+             f"[tail][body]acrossfade=d={xf}:c1=tri:c2=tri,aformat=channel_layouts=stereo[out]")
+    with tempfile.TemporaryDirectory() as tmp:
+        looped = Path(tmp) / "loop.wav"
+        run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", master, "-i", master, "-filter_complex", graph,
+                 "-map", "[out]", "-c:a", "pcm_f32le", looped], 120, "music loop cut")
+        meas = run_cmd(["ffmpeg", "-nostdin", "-hide_banner", "-i", looped, "-af",
+                        f"loudnorm=I={lufs}:TP={tp}:LRA=11:print_format=json", "-f", "null", "-"],
+                       120, "loudness measurement").stderr
+        m = json.loads(meas[meas.rindex("{"):meas.rindex("}") + 1])
+        if m["input_i"] in ("-inf", "inf") or float(m["input_i"]) < -70:
+            raise RuntimeError(f"music clean-up: the music is silent or nearly silent ({m['input_i']} LUFS)")
+        norm = (f"loudnorm=I={lufs}:TP={tp}:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
+                f"measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:"
+                f"offset={m['target_offset']}:linear=true")
+        normed = Path(tmp) / "normed.wav"
+        mode = run_cmd(["ffmpeg", "-nostdin", "-hide_banner", "-y", "-i", looped, "-af", norm + ":print_format=json",
+                        "-ar", "48000", "-c:a", "pcm_f32le", normed], 120, "loudness").stderr
+        mode = re.findall(r'"normalization_type"\s*:\s*"(\w+)"', mode)
+        run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", normed, "-map_metadata", "-1",
+                 "-c:a", "libopus", "-b:a", f"{kbps}k",
+                 "-fflags", "+bitexact", "-flags:a", "+bitexact", ogg], 120, "OGG encode")
+    return ogg, {"type": "music", "bpm": bpm, "bars": bars, "loop_sec": loop, "crossfade_s": xf,
+                 "loudness_target_lufs": lufs, "true_peak_target_db": tp,
+                 "loudness_mode": mode[-1] if mode else "unknown",
+                 "clip_events_in_master": clips}
 
 
 def run_cmd(cmd: list, timeout: int, what: str) -> subprocess.CompletedProcess:

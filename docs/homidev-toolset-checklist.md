@@ -1,6 +1,6 @@
 # homidev Toolset Checklist
 
-Status as of 7 Oct 2026. Follows design **v1.1** (`homidev-asset-pipeline-design.md`). Tick items as they are verified, then commit this file alongside `homidev-setup.md`.
+Status as of 8 Oct 2026. Follows design **v1.1** (`homidev-asset-pipeline-design.md`). Tick items as they are verified, then commit this file alongside `homidev-setup.md`.
 
 Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on something else
 
@@ -66,7 +66,7 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
 - [x] Kokoro TTS (1 Oct): `~/voice/tts`, CPU, voice `af_heart`, clear speech; espeak-ng + en_core_web_sm installed
 - [x] faster-whisper `small.en` (1 Oct): `~/voice/stt`, CPU; check.py v0.3 with glossary → 100% PASS
 - [ ] Later: try a British/other voice; loudness normalise to −16 LUFS with ffmpeg (Stage 1 audio checks, step 10)
-- [ ] Sound effects (8b, **closed 7 Oct**) and music (8c): see `homidev-step8bc-audio-comparison.md` v0.6 — **P1–P7 locked 6 Oct**: Stable Audio 3 Small-SFX (8b) then Small-Music (8c); ACE-Step 1.5 reserve; MusicGen blocked
+- [x] Sound effects (8b, **closed 7 Oct**) and music (8c, **closed 8 Oct**): see `homidev-step8bc-audio-comparison.md` v0.6 — **P1–P7 locked 6 Oct**: Stable Audio 3 Small-SFX (8b) then Small-Music (8c); ACE-Step 1.5 reserve; MusicGen blocked
   - [x] 8b-1 (6 Oct): read-only pre-check PASS — ComfyUI 0.37.0 already supports Stable Audio 3 (`sa3.py`), **no ComfyUI update**; torch 2.14.0+cu130 True (first try failed only because the shell sat in deleted `/tmp/zrec`)
   - [x] 8b-2 (6 Oct): `stable_audio_3_small_sfx.safetensors` + `t5gemma_b_b_ul2.safetensors` in `~/model-review/stable-audio-3/` (~13 min), both sha256 OK; LICENSE.md, SOURCE.txt, SHA256SUMS kept there. Q1–Q6 locked
   - [x] 8b-3a (6 Oct): Stability registration done 6 Oct (HomiLabs Solutions SMC Pvt Ltd, contact Humayun Shahzad); MODEL-REGISTER.md `4118d485…6ec4` + models.json `7e6e9d0d…22ed`; backups `*.bak-20261006` = originals; MusicGen blocked
@@ -77,7 +77,11 @@ Legend: `[x]` done and verified · `[ ]` pending · *(blocked: …)* waiting on 
   - [x] 8b-5c (7 Oct): `stage1-check.sh` **v0.5** installed on homi-nas (sha256 `3ebb7e9a…568d`, backup `.bak-20261007` = v0.4); K1–K6; image test job still PASS
   - [x] 8b-5d (7 Oct): first real sfx jobs end-to-end `20261007-1709-test-sfx-01..03` (button tap, seeds 3001–3003): all PASS with 1 WARN each — **0.31–0.35 s silence before the click** (would feel laggy). D1–D3 locked
   - [x] 8b-6 (7 Oct): receiver **v0.8** (sha256 `0081529c…3748`, backup `receiver.py.bak-v0.7`; optional start trim `lead_keep_s`, recipes without it byte-identical to v0.7) + recipe `sfx-ui-basic` **v1.1** (`cb08f549…4fbb`, `lead_keep_s` 0.01; backup `~/assets/recipe-sfx-ui-basic-v1.0.json.bak`). Re-run `20261007-2120-test-sfx-01..03`: 0.78–0.82 s, pause before click < 0.01 s, **all Stage 1 PASS, no WARN**. Same seed → identical master audio (reproducible). **Homi's Stage 2 pick: tap 02. 8b closed.**
-  - [ ] 8c Small-Music — **next**
+  - [x] 8c-1 (7 Oct): `stable_audio_3_small_music.safetensors` downloaded into `~/model-review/stable-audio-3/small-music/` (8 min), sha256 `da85866b…4b64` OK; licence byte-identical to Small-SFX (same 6 Oct registration). M1–M6 locked
+  - [x] 8c-2 (7 Oct): MODEL-REGISTER `9f2fdd87…8888` + models.json `f1699315…6125` (backups `*.bak-8c`); model moved to `~/ComfyUI/models/checkpoints/`, sha256 OK before + after. S1–S4 locked
+  - [x] 8c-3 (7 Oct): `~/ai-inbox/_test/8c3/music-test.sh` v1 (`38984c05…`); 3 × 30 s loops, **5 s each**, real stereo, endings (fade/stop) → not loops by themselves; clipping in 02/03 (inaudible). N1–N5 locked; Homi: quality great, demo joins acceptable
+  - [x] 8c-4 (8 Oct): MU0–MU8 locked. Receiver **v0.9** (`05908d0e…`, backup `receiver.py.bak-v0.8`): music loop clean-up; recipe **`music-loop-basic` v1.0** (recipe.json `7b56f758…`, workflow.json `c3ddd55f…`); `stage1-check.sh` **v0.6** (`d23243c3…`, backup `.bak-v0.5`): music rules; image/voice/sfx unchanged
+  - [x] 8c-5 (8 Oct): first real music jobs: 2 of 3 FAILED Stage 1 (OGG header said 21.41 s, audio 21.33 s) → cause: loudness "dynamic" mode + direct OGG encode. F1–F3 locked → receiver **v0.9.1** (`be613986…`, backup `receiver.py.bak-v0.9`): WAV first, then OGG; records loudness mode. Re-run `20261008-1050-test-music-01..03`: **all PASS**. **Homi's Stage 2 pick: loop 03. 8c closed.**
 - Urdu voice: deferred · Piper, Kdenlive: not needed
 
 ## E. Storage and the NVMe move (build step 7)
@@ -162,7 +166,7 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
   - [ ] Clean up later: `~/ai-inbox/_test/` scratch files (homidev job `20260930-2303-test-image-01` deleted by hand 1 Oct; it had no status.json so the clean-up script would never remove it)
 - [x] Step 6: Kokoro + faster-whisper voice test (1 Oct)
 - [x] Step 7: NVMe move (5 Oct; boot-entry tidy-up pending, see E)
-- [ ] Step 8: commercial image model (**8a closed 5 Oct**, see E), sound effects (**8b closed 7 Oct**, Stable Audio 3 Small-SFX), music (8c: Stable Audio 3 Small-Music, ACE-Step 1.5 reserve)
+- [x] Step 8 (**closed 8 Oct**): commercial image model (8a, Z-Image-Turbo), sound effects (8b, Stable Audio 3 Small-SFX), music (8c, Stable Audio 3 Small-Music; ACE-Step 1.5 stays reserve)
 - [ ] Step 9: receiver (design `receiver-design.md` v1.0, approved 1 Oct; built before NVMe by Homi's decision)
   - [x] 9a env `~/receiver/venv` (FastAPI+uvicorn), token `~/.config/asset-receiver/token` on both machines, `/health` 200 with token / 401 without
   - [x] 9b `~/assets/models.json` + recipe `test-image-cutout`; `/recipes` shows commercial_ok=no; unapproved recipe ignored
@@ -191,9 +195,22 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
 - [ ] Step 11: further recipes one at a time: image → voice → sfx → music
   - [ ] **FIRST: voice recipe v1.1 with a limiter** — 7 Oct regression job (2.1 s clip) FAILED Stage 1 at −23.5 LUFS; short clips can't reach −16 with loudnorm + −1.5 dB peak cap
   - [ ] Q5: apps using Stable Audio sounds show "Powered by Stability AI" (asset-integrate.sh / homidev.md rule)
-  - [ ] asset-integrate.sh: support `sfx` (OGG only), like voice
-  - [ ] review-sheet.sh: support `sfx` jobs
+  - [ ] asset-integrate.sh: support `sfx` and `music` (OGG only), like voice
+  - [ ] review-sheet.sh: support `sfx` and `music` jobs (music: player + "played twice" preview for the join)
+  - [ ] Music: if a loop ever sounds "squashed", use the same limiter as voice v1.1 instead of loudnorm's dynamic mode; if a join lands off the beat, consider BPM detection (new tool → own decision)
   - [ ] Note for sfx prompts: the model adds a faint sound near the asked length (D2: left in, inaudible) — ask for a shorter length (e.g. 'Length: 0.3 seconds') if a file must be tiny
+
+## G2. Step 12 — homidev max: LLM workbench (design v1.2; **L1–L6 locked 7 Oct**, starts after 8c)
+
+Purpose (Homi): experiment with LLMs and use the results to decide on hardware upgrades or online resources. Stay within boundaries; Claude may hold Homi anytime.
+
+- [ ] L1 New track "Step 12", added to design v1.2
+- [ ] L2 LM Studio installed; receiver extended to unload LM Studio models before every job (like Ollama); until then auto-unload timer on and LM Studio closed when done. **Rule in code: services never run models in parallel**
+- [ ] L3 Qwen + DeepSeek models sized for 16 GB VRAM, versions chosen at planning; each in MODEL-REGISTER with licence + sha256
+- [ ] L4 "Deep thinking" compared fairly: same prompts on gpt-oss (high reasoning), Qwen (thinking on), DeepSeek-R1
+- [ ] L5 Models that spill into system RAM wait for the second Corsair stick
+- [ ] L6 Homi sends the full "max" wishlist → one ordered plan
+- [ ] Test sheet: per model record speed (tokens/s), VRAM used, fits on GPU or spills, quality score → basis for the hardware / cloud decision
 
 ## H. Later / optional
 
@@ -202,7 +219,7 @@ Hardware as found 4 Oct (board **MSI PRO Z690-A WIFI**, 4× M.2, 6× SATA):
 - [ ] Docker + NVIDIA Container Toolkit
 - [ ] LoRA training (AI-Toolkit or kohya_ss) for consistent app styles
 - [ ] Sunshine + Moonlight (GPU remote desktop)
-- [ ] RAM: SK hynix 16 GB DDR5-5600 added in B2 (7 Oct) but **not detected** — reseat/check this evening; ideally same model as the Corsair CMK16GX5M1B5200Z40 in A2; then one overnight memtest86+ run
+- [ ] RAM: SK hynix stick (not detected) **removed 7 Oct**; Homi is buying a second **Corsair CMK16GX5M1B5200Z40** (check the full part number matches); after fitting: check both seen, then one overnight memtest86+ run
 - [ ] RAM upgrade to 64 GB (2 × 32 GB)
 - [ ] `homidev-backup.sh`: delete-guard (stop if a commit would delete tracked docs) — after the 7 Oct checklist-deletion slip
 - [ ] Tidy `~/model-review/z-image-turbo/` (keep licence record only)

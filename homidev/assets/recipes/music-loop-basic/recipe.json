@@ -1,0 +1,26 @@
+{
+  "name": "music-loop-basic",
+  "version": "1.0",
+  "asset_type": "music",
+  "engine": "comfyui",
+  "models": ["stable-audio-3-small-music", "t5gemma-b-b-ul2-text-encoder"],
+  "inputs": {
+    "prompt":  { "required": true,  "max_length": 500 },
+    "bpm":     { "required": true,  "type": "int", "min": 60, "max": 160 },
+    "seconds": { "required": false, "type": "int", "min": 20, "max": 60, "default": 30 },
+    "seed":    { "required": false, "type": "int" }
+  },
+  "outputs": ["master"],
+  "settings": {
+    "postprocess": "music",
+    "loop_window": 0.75,
+    "min_bars": 4,
+    "crossfade_s": 0.5,
+    "loudness_lufs": -16,
+    "true_peak_db": -1.5,
+    "opus_kbps": 128
+  },
+  "approved_by": "Homi",
+  "approved_date": "2026-10-08",
+  "notes": "Background music loops with Stable Audio 3 Small-Music (Community Licence + Gemma terms). 8 steps, cfg 1, lcm/simple, as tested in 8c-3. The model gets '<prompt>, <bpm> BPM, instrumental, no vocals'. Receiver v0.9 clean-up (MU2-MU4): master FLAC as generated (metadata stripped, stereo) + OGG/Opus 128k stereo loop: largest whole number of bars inside the first 75 % (skips the model's ending), 0.5 s blend into the start, -16 LUFS, true peak -1.5 dB. Prompt rules (MU7): style + instruments + mood; BPM only in the bpm field; no reliance on fine details; make 3 versions with different seeds. Seconds: 30 gives a ~21 s loop, 60 gives ~42 s. Apps using this music show 'Powered by Stability AI'."
+}
