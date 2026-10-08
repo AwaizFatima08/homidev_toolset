@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-08",
+  "updated": "2026-10-09",
   "note": "Machine copy of MODEL-REGISTER.md. Always update both together. File paths are relative to /home/homidev.",
   "models": {
     "sdxl-turbo": {
@@ -91,6 +91,30 @@
       "licence": "Apache-2.0",
       "commercial_ok": "yes",
       "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68"
+    },
+    "kokoro-voice-af_bella": {
+      "file": ".cache/huggingface/hub/models--hexgrad--Kokoro-82M/snapshots/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/af_bella.pt",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "8cb64e02fcc8de0327a8e13817e49c76c945ecf0052ceac97d3081480e8e48d6"
+    },
+    "kokoro-voice-am_michael": {
+      "file": ".cache/huggingface/hub/models--hexgrad--Kokoro-82M/snapshots/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/am_michael.pt",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "9a443b79a4b22489a5b0ab7c651a0bcd1a30bef675c28333f06971abbd47bd37"
+    },
+    "kokoro-voice-bm_george": {
+      "file": ".cache/huggingface/hub/models--hexgrad--Kokoro-82M/snapshots/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/bm_george.pt",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "f1bc812213dc59774769e5c80004b13eeb79bd78130b11b2d7f934542dab811b"
+    },
+    "kokoro-voice-bf_emma": {
+      "file": ".cache/huggingface/hub/models--hexgrad--Kokoro-82M/snapshots/f3ff3571791e39611d31c381e3a41a3af07b4987/voices/bf_emma.pt",
+      "licence": "Apache-2.0",
+      "commercial_ok": "yes",
+      "sha256": "d0a423deabf4a52b4f49318c51742c54e21bb89bbbe9a12141e7758ddb5da701"
     }
   }
 }

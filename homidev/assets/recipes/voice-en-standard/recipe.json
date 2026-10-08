@@ -1,15 +1,42 @@
 {
   "name": "voice-en-standard",
-  "version": "0.2",
+  "version": "0.3",
   "asset_type": "voice",
   "engine": "kokoro",
-  "models": ["kokoro-82m", "kokoro-voice-af_heart", "whisper-small-en"],
+  "models": [
+    "kokoro-82m",
+    "kokoro-voice-af_heart",
+    "whisper-small-en",
+    "kokoro-voice-af_bella",
+    "kokoro-voice-am_michael",
+    "kokoro-voice-bm_george",
+    "kokoro-voice-bf_emma"
+  ],
   "inputs": {
-    "script":   { "required": true,  "max_length": 1000 },
-    "glossary": { "required": false, "max_length": 300, "default": "" },
-    "voice":    { "required": false, "choices": ["af_heart"], "default": "af_heart" }
+    "script": {
+      "required": true,
+      "max_length": 1000
+    },
+    "glossary": {
+      "required": false,
+      "max_length": 300,
+      "default": ""
+    },
+    "voice": {
+      "required": false,
+      "choices": [
+        "af_heart",
+        "af_bella",
+        "am_michael",
+        "bm_george",
+        "bf_emma"
+      ],
+      "default": "af_heart"
+    }
   },
-  "outputs": ["voice"],
+  "outputs": [
+    "voice"
+  ],
   "settings": {
     "trim_silence_keep_s": 0.1,
     "loudness_lufs": -16,
@@ -19,10 +46,13 @@
     "max_rounds": 4,
     "tolerance_lu": 0.5,
     "max_gain_db": 20,
-    "formats": ["wav (master, 24 kHz mono 16-bit)", "ogg (Opus 64 kbps, for apps)"],
+    "formats": [
+      "wav (master, 24 kHz mono 16-bit)",
+      "ogg (Opus 64 kbps, for apps)"
+    ],
     "script_check": "faster-whisper small.en, PASS at >= 90% word match; FLAG does not fail the job"
   },
   "approved_by": "Homi",
-  "approved_date": "2026-10-08",
-  "notes": "English voice-overs. Only voices listed in 'choices' are allowed; new voices need Homi's listening approval. Every voice-over is human-reviewed (Stage 2). From v0.2 (receiver v0.10, VL1-VL6): levelled by gain + limiter at -2 dB (4x oversampled), re-measured up to 4 rounds, so short clips also reach -16 LUFS; fails if more than +20 dB is needed."
+  "approved_date": "2026-10-09",
+  "notes": "English voice-overs. Only voices listed in 'choices' are allowed; new voices need Homi's listening approval. Every voice-over is human-reviewed (Stage 2). From v0.2 (receiver v0.10, VL1-VL6): levelled by gain + limiter at -2 dB (4x oversampled), re-measured up to 4 rounds, so short clips also reach -16 LUFS; fails if more than +20 dB is needed. v0.3 (9 Oct 2026, S8): four more voices approved by Homi after listening to samples: af_bella (US female, warmer), am_michael (US male), bm_george (British male), bf_emma (British female)."
 }

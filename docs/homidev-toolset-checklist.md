@@ -250,7 +250,8 @@ Purpose (Homi): experiment with LLMs and use the results to decide on hardware u
 - [x] S11 `lmstudio.service` user unit (daemon up + server start at boot; `ExecStop` daemon down)
 - [x] S6 `ask-homidev.sh` v1.0 — gpt-oss:20b over SSH (Ollama is local-only), refuses while an asset job runs; test answer 94 tok/s
 - [x] S10 `model-update-check.sh` v1.0 — Ollama manifest digest vs registry (`ollama-content-digest` header), LM Studio versions, dated licence reminders (October = Stability AI DUE); all 5 chat models current on 9 Oct
-- [x] S8 voices: `am_michael`, `bm_george`, `bf_emma`, `af_bella` downloaded (sha256 OK, `~/model-review/kokoro-voices/`, Apache 2.0) and copied into the Kokoro snapshot; **samples page** `~/ai-inbox/_test/voices-s8/voices-s8.html` — Homi listens, then recipe `voice-en-standard` v0.3 `choices` + MODEL-REGISTER rows for the chosen voices
+- [x] S8 voices: `am_michael`, `bm_george`, `bf_emma`, `af_bella` downloaded (sha256 OK, `~/model-review/kokoro-voices/`, Apache 2.0), copied into the Kokoro snapshot; samples page listened to → **Homi approved all four (9 Oct)** → recipe **`voice-en-standard` v0.3** (5 `choices`, backup `recipe-voice-en-standard-v0.2.json.bak`), `models.json` 19 entries + 4 MODEL-REGISTER rows (backups `.bak-20261009`/`b`); proof job with `am_michael` through the pipeline (see line below); regression golden re-recorded for recipe v0.3
+- [x] Icon cut-outs: **Homi approved all three (9 Oct)** → `asset-pilot/assets/icons/` (raw + cutout each), commit `ffc4374`
 - [ ] S9 upscale recipe (Real-ESRGAN ×4): **blocked by design** — the receiver accepts text/int inputs only and ComfyUI's `LoadImage` reads from its input folder; needs receiver v0.12 "image input" (base64 in `inputs`, size cap, written to `ComfyUI/input/<job>.png`). Decision for Homi (see chat 9 Oct)
 - [ ] S7 (15 Oct) clean-up `--delete` + ComfyUI output folder
 
