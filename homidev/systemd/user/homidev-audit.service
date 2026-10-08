@@ -1,0 +1,7 @@
+# homidev-audit.service (user unit, S3, 9 Oct 2026) - run the read-only audit and keep the log
+[Unit]
+Description=homidev audit (read-only) -> ~/audit-logs/<date>.txt
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "%h/homidev-audit.sh > %h/audit-logs/$(date +%%Y-%%m-%%d_%%H%%M).txt 2>&1; find %h/audit-logs -name \"*.txt\" -mtime +60 -delete"

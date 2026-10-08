@@ -1,0 +1,14 @@
+# lmstudio.service (user unit, S11, 9 Oct 2026) - start LM Studio daemon + API server at boot (linger is on for homidev)
+[Unit]
+Description=LM Studio headless (llmster) daemon + server on 127.0.0.1:1234
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.lmstudio/bin/lms daemon up
+ExecStart=%h/.lmstudio/bin/lms server start
+ExecStop=%h/.lmstudio/bin/lms daemon down
+
+[Install]
+WantedBy=default.target

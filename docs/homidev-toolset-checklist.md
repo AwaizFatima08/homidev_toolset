@@ -240,6 +240,20 @@ Purpose (Homi): experiment with LLMs and use the results to decide on hardware u
 - [ ] LT4 first real app: Homi names the app; add `lottie` package, `assets/lottie/`, usage note
 - [ ] LT8 optional: homidev `lottie-render` engine (rlottie, JSON in → frames out) only if the browser preview ever misleads
 
+## G4. Step 14 — helper tools S1–S11 (agreed 9 Oct 2026; Homi: S1–S6, S8–S11; S7 dated 15 Oct)
+
+- [x] S4 homi-nas key in homidev `authorized_keys` locked with `from="192.168.100.122"` (backup `authorized_keys.bak-20261009`); fresh login OK, pull key still `rrsync -ro`
+- [x] S2 `homidev-status.sh` v1.0 — one-screen state (receiver, GPU, loaded LLMs, services, jobs, last audit)
+- [x] S1 `receiver-regression.sh` v1.0 — 5 golden jobs in project `regress` (fixed seeds 77001–77004 + fixed voice line); baseline `~/ai-inbox/_regression/golden.json` recorded 8 Oct 23:59 on receiver v0.11 (all 5 PASS); compare run 9 Oct 00:02 showed **voice is not bit-exact** (Kokoro on CPU: 28 bytes, 0.1 LU) → v1.0 final compares voice by tolerance (loudness/peak ±0.5 dB, length ±0.2 s, gain ±0.5 dB, whisper result), ComfyUI outputs by sha256 (image/icon/sfx/music were bit-identical). Baseline re-recorded 00:06, compare: **5/5 identical**. Golden copy in repo `homi-nas/ai-inbox/_regression/golden.json`
+- [x] S5 `release-check.sh` v1.0 — registered assets exist + declared in pubspec, lottie package present for .json, every ATTRIBUTION credit found in lib/ or store text (echostep: PASS with 1 warning, no register yet)
+- [x] S3 boot audit as **user** units (no sudo: linger already on): `homidev-audit.service` + `.timer` (OnBootSec=2min) → `~/audit-logs/<date>.txt`, 60-day retention; first log 2026-10-08_2358: 47 pass · 0 fail
+- [x] S11 `lmstudio.service` user unit (daemon up + server start at boot; `ExecStop` daemon down)
+- [x] S6 `ask-homidev.sh` v1.0 — gpt-oss:20b over SSH (Ollama is local-only), refuses while an asset job runs; test answer 94 tok/s
+- [x] S10 `model-update-check.sh` v1.0 — Ollama manifest digest vs registry (`ollama-content-digest` header), LM Studio versions, dated licence reminders (October = Stability AI DUE); all 5 chat models current on 9 Oct
+- [x] S8 voices: `am_michael`, `bm_george`, `bf_emma`, `af_bella` downloaded (sha256 OK, `~/model-review/kokoro-voices/`, Apache 2.0) and copied into the Kokoro snapshot; **samples page** `~/ai-inbox/_test/voices-s8/voices-s8.html` — Homi listens, then recipe `voice-en-standard` v0.3 `choices` + MODEL-REGISTER rows for the chosen voices
+- [ ] S9 upscale recipe (Real-ESRGAN ×4): **blocked by design** — the receiver accepts text/int inputs only and ComfyUI's `LoadImage` reads from its input folder; needs receiver v0.12 "image input" (base64 in `inputs`, size cap, written to `ComfyUI/input/<job>.png`). Decision for Homi (see chat 9 Oct)
+- [ ] S7 (15 Oct) clean-up `--delete` + ComfyUI output folder
+
 ## H. Later / optional
 
 - [x] ~~qwen3:14b (test for Urdu content)~~ — not needed for now: Gemma 4 12B writes good Urdu (5 Oct)

@@ -1,0 +1,168 @@
+{
+  "image": {
+    "files": [
+      {
+        "name": "JOB_raw.png",
+        "sha256": "8192ff82c83499456774bfd718e9241f9cab47391d13ae386f372a796246ffe0",
+        "size": 302232,
+        "width": 1024,
+        "height": 1024,
+        "duration_sec": null,
+        "channels": null,
+        "sample_rate": null,
+        "loudness_lufs": null,
+        "true_peak_db": null
+      }
+    ],
+    "post": null,
+    "check": null,
+    "receiver": "0.11",
+    "recipe_version": "1.0"
+  },
+  "icon": {
+    "files": [
+      {
+        "name": "JOB_raw.png",
+        "sha256": "006580a716d1a3c27d0d9d2f756d897059609a0e861472d7805581ae05d6e33e",
+        "size": 363766,
+        "width": 1024,
+        "height": 1024,
+        "duration_sec": null,
+        "channels": null,
+        "sample_rate": null,
+        "loudness_lufs": null,
+        "true_peak_db": null
+      },
+      {
+        "name": "JOB_cutout.png",
+        "sha256": "3962444704fc49c91929d6522e888eeb63b79db5ddfd3b8f833275575fedd5a4",
+        "size": 400243,
+        "width": 1024,
+        "height": 1024,
+        "duration_sec": null,
+        "channels": null,
+        "sample_rate": null,
+        "loudness_lufs": null,
+        "true_peak_db": null
+      }
+    ],
+    "post": null,
+    "check": null,
+    "receiver": "0.11",
+    "recipe_version": "1.0"
+  },
+  "voice": {
+    "files": [
+      {
+        "name": "JOB_voice.wav",
+        "format": "wav",
+        "channels": 1,
+        "sample_rate": 24000,
+        "duration_sec": 3.48,
+        "loudness_lufs": -16.5,
+        "true_peak_db": -2
+      },
+      {
+        "name": "JOB_voice.ogg",
+        "format": "ogg",
+        "channels": 1,
+        "sample_rate": 48000,
+        "duration_sec": 3.48,
+        "loudness_lufs": -16.6,
+        "true_peak_db": -1.8
+      }
+    ],
+    "post": {
+      "type": "voice-limiter",
+      "limiter_db": -2,
+      "gain_db": 9.3
+    },
+    "check": "PASS",
+    "receiver": "0.11",
+    "recipe_version": "0.2",
+    "tolerant": true
+  },
+  "sfx": {
+    "files": [
+      {
+        "name": "JOB_master.flac",
+        "sha256": "35f9b37b621168d5c39d7268e4b1611db12d7434ae8cf647c632b887c01b9d62",
+        "size": 60068,
+        "width": null,
+        "height": null,
+        "duration_sec": 2.04,
+        "channels": 2,
+        "sample_rate": 44100,
+        "loudness_lufs": -33.7,
+        "true_peak_db": -8
+      },
+      {
+        "name": "JOB_sfx.ogg",
+        "sha256": "3b7226c993463fc82011931da818850d58b6079322b4fc8570312e504232d741",
+        "size": 5599,
+        "width": null,
+        "height": null,
+        "duration_sec": 0.81,
+        "channels": 1,
+        "sample_rate": 48000,
+        "loudness_lufs": -31.5,
+        "true_peak_db": -2.8
+      }
+    ],
+    "post": {
+      "type": "sfx",
+      "trimmed_duration_sec": 0.808,
+      "peak_target_db": -3,
+      "lead_keep_s": 0.01,
+      "gain_db": 2
+    },
+    "check": null,
+    "receiver": "0.11",
+    "recipe_version": "1.1"
+  },
+  "music": {
+    "files": [
+      {
+        "name": "JOB_master.flac",
+        "sha256": "5bbf6cd9808fda400343b84d32dd9a680b21648c8c08eb197bf8b9cf11d8ce92",
+        "size": 1974819,
+        "width": null,
+        "height": null,
+        "duration_sec": 30.09,
+        "channels": 2,
+        "sample_rate": 44100,
+        "loudness_lufs": -16.1,
+        "true_peak_db": 0
+      },
+      {
+        "name": "JOB_music.ogg",
+        "sha256": "aef42ee9c39a8d0c61aa7a88803fc450d3be9ea3610500e4e574584c2a7a8a71",
+        "size": 376393,
+        "width": null,
+        "height": null,
+        "duration_sec": 21.34,
+        "channels": 2,
+        "sample_rate": 48000,
+        "loudness_lufs": -16,
+        "true_peak_db": -1.4
+      }
+    ],
+    "post": {
+      "type": "music",
+      "bpm": 90,
+      "bars": 8,
+      "loop_sec": 21.3333,
+      "crossfade_s": 0.5,
+      "loudness_target_lufs": -16,
+      "true_peak_target_db": -1.5,
+      "loudness_mode": "dynamic",
+      "clip_events_in_master": 5,
+      "gain_db": null
+    },
+    "check": null,
+    "receiver": "0.11",
+    "recipe_version": "1.0"
+  },
+  "_recorded": "2026-10-09T00:06:04+05:00",
+  "_receiver": "ok (v0.11)"
+}

@@ -1,0 +1,9 @@
+# homidev-audit.timer (S3) - 2 min after every boot
+[Unit]
+Description=homidev audit 2 min after boot
+
+[Timer]
+OnBootSec=2min
+
+[Install]
+WantedBy=timers.target

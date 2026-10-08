@@ -1,6 +1,6 @@
 # homidev — asset engine (read by Claude Code on homi-nas)
 
-Last updated: 8 Oct 2026 (v2.4 — Lottie animations on homi-nas, LT1–LT8; v2.3: receiver v0.11 GPU guard, asset-pull.sh, LM Studio + LLM models, Wan 2.2 test only). Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED), `receiver-design.md` (v1.0), `homidev-step10-design.md` (v0.1, E1–E8 locked) and `homidev-step8bc-audio-comparison.md` (sound effects + music decisions).
+Last updated: 9 Oct 2026 (v2.5 — helper tools S1–S11: status, regression, release-check, ask-homidev, update-check, icon-cutout recipe; v2.4 — Lottie; v2.3: receiver v0.11 GPU guard, asset-pull.sh, LM Studio + LLM models, Wan 2.2 test only). Full designs on homi-nas: `~/homidev_toolset/docs/homidev-asset-pipeline-design.md` (v1.1, LOCKED), `receiver-design.md` (v1.0), `homidev-step10-design.md` (v0.1, E1–E8 locked) and `homidev-step8bc-audio-comparison.md` (sound effects + music decisions).
 
 ## What it is
 - Separate GPU machine on the LAN: `192.168.100.123`, user `homidev`. RTX 5060 Ti 16 GB, 16 GB RAM.
@@ -20,6 +20,7 @@ Last updated: 8 Oct 2026 (v2.4 — Lottie animations on homi-nas, LT1–LT8; v2.
 | `voice-en-standard` v0.2 | WAV + OGG voice-over, **commercial OK** (Kokoro) | `script`, `glossary` (both required, never empty), `voice` (optional, default `af_heart`) | levelled to −16 LUFS with a limiter (short clips too); only the OGG goes into an app |
 | `sfx-ui-basic` v1.1 | sound effect: FLAC master + **mono OGG**, **commercial OK** (Stable Audio 3 Small-SFX — needs attribution, see below) | `prompt` (required), `seconds` (1–10, default 2), `seed` (optional) | silence trimmed at both ends, peak −3 dB; only the OGG goes into an app |
 | `music-loop-basic` v1.0 | background music loop: FLAC master + **stereo OGG loop**, **commercial OK** (Stable Audio 3 Small-Music — needs attribution, see below) | `prompt` (required), `bpm` (60–160, **required**), `seconds` (20–60, default 30), `seed` (optional) | instrumental only; the loop is cut at whole bars (≈ 70 % of `seconds`: 30 → ~21 s, 60 → ~42 s), −16 LUFS; only the OGG goes into an app |
+| `icon-cutout-basic` v1.0 | opaque `_raw.png` + **transparent `_cutout.png`** 1024×1024, **commercial OK** (Z-Image-Turbo + BiRefNet, MIT) | `prompt` (required), `seed` (optional) | for icons that must sit on any background; ask for a plain single-colour background so the cut is clean; check the cutout edges and that the highlight is not the background colour |
 | `test-image-cutout` | **tests only — never for a project** | — | SDXL Turbo, non-commercial |
 
 - A new recipe or tool needs Homi's approval. A refused job lists the currently approved recipes.
@@ -44,6 +45,14 @@ Last updated: 8 Oct 2026 (v2.4 — Lottie animations on homi-nas, LT1–LT8; v2.
    - If it prints `REMINDER: this app must show "Powered by Stability AI"`, pass that on to Homi.
 7. Commit the new `assets/` files, `assets/ASSET-REGISTER.md` and (if created) `assets/ATTRIBUTION.md` in the project's normal way (Homi's backup routine applies). Never edit register rows by hand. If the repo has no commits yet, the commit would include other files, or the git name/email looks wrong, ask Homi before committing.
 
+## Helper tools on homi-nas (`~/ai-inbox/_tools/`, 9 Oct 2026)
+- `homidev-status.sh` — one screen: up/down, receiver, GPU, loaded LLMs, services, last audit. Run it at the start of any asset session.
+- `receiver-regression.sh` — 5 golden jobs (image, icon, voice, sfx, music) compared with `~/ai-inbox/_regression/golden.json`. Run after any receiver or recipe change; `--baseline` only when a change was intended and Homi agreed.
+- `release-check.sh <repo>` — **run before every release build**: registered assets exist and are declared in pubspec, every ATTRIBUTION.md credit appears in the app. FAIL = do not build.
+- `ask-homidev.sh "<question>" [model] [--think]` — ask gpt-oss:20b (or another local model) on homidev; offline backup / second opinion. Never for medical facts without Homi's review.
+- `model-update-check.sh` — monthly, read-only: newer Ollama builds, LM Studio updates, dated licence re-checks (Stability AI every October).
+- homidev runs its own audit 2 min after every boot (`~/audit-logs/`, shown by `homidev-status.sh`); LM Studio starts at boot as a user service.
+
 ## Lottie animations (homi-nas, agreed 8 Oct 2026, LT1–LT8)
 - Scope: loaders, success ticks, empty states, onboarding micro-motion, splash accents. Original HomiLabs vector work — no AI model, no attribution. homidev is not involved.
 - Make: one Python script per animation in `~/lottie/animations/<project>/<name>.py` using `~/lottie/homilottie.py` (`~/lottie/venv/bin/python <script>`); it writes a job folder `~/ai-inbox/<project>/<job-id>/` like a homidev job. Rules: shapes, fills, strokes, transforms, opacity, trim paths, masks only; **no expressions, images, text layers, effects**; 30 fps max; 512×512; aim ≤ 50 KB. Scripts add shapes background-first (`finish()` fixes the order); screen y grows downward.
@@ -57,7 +66,7 @@ Last updated: 8 Oct 2026 (v2.4 — Lottie animations on homi-nas, LT1–LT8; v2.
 
 ## Prompt rules (from tests on 5–8 Oct 2026)
 - **People:** always name the audience, e.g. "a Pakistani family, modest clothing". Without it the model picks its own default.
-- **Icons:** ask for "solid filled shapes, no outlines, centered, empty space around, no frame, no border, no text". For launcher icons use a **solid background colour that fills the whole square edge to edge** — this avoids the faint background tile (pilot 6 Oct: 2 of 3 clean; still check every image for a rounded tile or white margin). A transparent version needs a cut-out recipe (not built yet). Simple flat shapes can also be drawn as SVG in code — offer that option.
+- **Icons:** ask for "solid filled shapes, no outlines, centered, empty space around, no frame, no border, no text". For launcher icons use a **solid background colour that fills the whole square edge to edge** — this avoids the faint background tile (pilot 6 Oct: 2 of 3 clean; still check every image for a rounded tile or white margin). For a **transparent** icon use `icon-cutout-basic` (plain single-colour background in the prompt). Simple flat shapes can also be drawn as SVG in code — offer that option.
 - **Text in images** works well — keep it short and spell it exactly in quotes.
 - **Plain gradients / flat colours:** make them in app code, not with AI.
 - **Voice:** `glossary` is never empty — list app, brand and medical words from the script; if there are none, use the main subject word. Every voice-over is levelled automatically; Homi still listens to every one.
