@@ -1,4 +1,8 @@
 # receiver.py - homidev asset receiver
+# v0.11 (8 Oct 2026) - step 12 / review D2+D3: (1) before every ComfyUI job also unload LM Studio models
+#   (lms unload --all), free ComfyUI, then a GPU guard: the job fails clearly if more than GPU_BUSY_MIB is
+#   still in use (rule L2: services never run models in parallel). (2) PNG outputs lose ComfyUI's hidden
+#   prompt/workflow text chunks (png:exclude-chunk) before fingerprinting, like audio since SFX5.
 # v0.10 (8 Oct 2026) - step 11a (VL1-VL6): voice recipes with settings.leveller = "limiter" are levelled by
 #   measure -> gain -> 4x-oversampled limiter -> re-measure (up to 4 rounds) instead of one-pass loudnorm,
 #   so short quiet clips reach -16 LUFS. Recipes without "leveller" behave exactly as v0.9.1.
@@ -40,7 +44,7 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-VERSION = "0.10"
+VERSION = "0.11"
 HOME = Path.home()
 ASSETS = HOME / "assets"
 JOBS_DIR = ASSETS / "jobs"
@@ -51,6 +55,8 @@ COMFY = "http://127.0.0.1:8188"
 COMFY_OUTPUT = HOME / "ComfyUI" / "output"
 OLLAMA = "http://127.0.0.1:11434"
 OLLAMA_UNLOAD_WAIT_S = 30
+LMS = HOME / ".lmstudio" / "bin" / "lms"      # LM Studio CLI (step 12); absent = nothing to unload
+GPU_BUSY_MIB = 1500                           # more than this in use before a job = someone else holds the GPU
 ENGINES = {"comfyui", "kokoro"}
 ASSET_TYPES = {"image", "icon", "voice", "sfx", "music", "gif"}
 PROJECT_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -341,6 +347,8 @@ def run_comfyui(job_dir: Path, req: dict, recipe: dict) -> dict:
         shutil.move(str(src), str(dst))
         if ext in AUDIO_EXTS:
             strip_metadata(dst)          # SFX5: ComfyUI hides the whole workflow in the file
+        elif ext == ".png":
+            strip_png_metadata(dst)      # D2 (8 Oct): same for images (tEXt "prompt"/"workflow" chunks)
         files.append({"name": dst.name, "sha256": sha256(dst), "format": ext.lstrip("."),
                       "size": dst.stat().st_size,
                       **(audio_info(dst) if ext in AUDIO_EXTS else image_info(dst))})
@@ -370,6 +378,14 @@ def strip_metadata(path: Path):
     run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", path, "-map_metadata", "-1",
              "-fflags", "+bitexact", "-flags:a", "+bitexact",
              "-c:a", "flac" if path.suffix == ".flac" else "copy", tmp], 60, "strip metadata")
+    os.replace(tmp, path)
+
+
+def strip_png_metadata(path: Path):
+    """Re-write a PNG without text chunks (pixels unchanged; colour chunks kept)."""
+    tmp = path.with_name(path.stem + ".clean" + path.suffix)
+    run_cmd(["magick", path, "-define", "png:exclude-chunk=tEXt,zTXt,iTXt,date,time", tmp],
+            60, "strip PNG metadata")
     os.replace(tmp, path)
 
 
@@ -602,6 +618,48 @@ def unload_ollama() -> list:
     return names
 
 
+def lmstudio_loaded() -> list:
+    """Names of models LM Studio holds now. No lms / daemon down = nothing loaded."""
+    if not LMS.exists():
+        return []
+    try:
+        p = subprocess.run([str(LMS), "ps", "--json"], capture_output=True, text=True, timeout=30)
+        return [m.get("identifier") or m.get("modelKey") or str(m) for m in json.loads(p.stdout or "[]")]
+    except Exception as e:
+        print(f"[receiver] lms ps failed (treated as nothing loaded): {e}", flush=True)
+        return []
+
+
+def unload_lmstudio() -> list:
+    """L2 (step 12): LM Studio shares the GPU too, so its models are unloaded before every ComfyUI job."""
+    names = lmstudio_loaded()
+    if names:
+        try:
+            subprocess.run([str(LMS), "unload", "--all"], capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            print(f"[receiver] lms unload failed: {e}", flush=True)
+        left = lmstudio_loaded()
+        if left:
+            raise RuntimeError(f"LM Studio model(s) still loaded: {left}")
+        print(f"[receiver] unloaded LM Studio: {names}", flush=True)
+    return names
+
+
+def gpu_used_mib() -> int:
+    p = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                       capture_output=True, text=True, timeout=20)
+    return int(p.stdout.strip().splitlines()[0])
+
+
+def gpu_guard() -> int:
+    """Rule L2 in code: the GPU must be (nearly) empty before a job starts."""
+    used = gpu_used_mib()
+    if used > GPU_BUSY_MIB:
+        raise RuntimeError(f"GPU busy: {used} MiB in use before the job (limit {GPU_BUSY_MIB}) - "
+                           "a model loaded by hand (ComfyUI browser, Ollama, LM Studio)? Unload it and retry")
+    return used
+
+
 def free_comfyui():
     try:
         comfy_post("/free", {"unload_models": True, "free_memory": True})
@@ -618,7 +676,10 @@ def run_job(job_id: str):
         raise RuntimeError(f"recipe {req['recipe']} no longer approved or available")
     set_status(job_dir, "running", started=now())
     if recipe["engine"] == "comfyui":
-        set_status(job_dir, "running", ollama_unloaded=unload_ollama())   # D6
+        set_status(job_dir, "running", ollama_unloaded=unload_ollama(),   # D6
+                   lmstudio_unloaded=unload_lmstudio())                   # L2
+        free_comfyui()
+        set_status(job_dir, "running", gpu_used_mib_before=gpu_guard())  # L2 guard
         try:
             result = run_comfyui(job_dir, req, recipe)
         finally:
