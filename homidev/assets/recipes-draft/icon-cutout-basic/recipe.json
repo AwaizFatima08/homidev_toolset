@@ -1,0 +1,15 @@
+{
+  "name": "icon-cutout-basic",
+  "version": "0.1-draft",
+  "asset_type": "icon",
+  "engine": "comfyui",
+  "models": ["z-image-turbo-int8", "qwen3-4b-fp8-text-encoder", "z-image-vae", "birefnet"],
+  "inputs": {
+    "prompt": { "required": true,  "max_length": 1000 },
+    "seed":   { "required": false, "type": "int" }
+  },
+  "outputs": ["raw", "cutout"],
+  "approved_by": "",
+  "approved_date": "",
+  "notes": "DRAFT (T4, 8 Oct 2026) - NOT approved: approved_by is empty, so the receiver ignores it. Transparent icons: Z-Image-Turbo 1024x1024 exactly as image-zimage-basic v1.0 (CLIPLoader lumina2, shift 3, 9 steps, cfg 1, res_multistep/simple), then the built-in cut-out chain proven in step 4 (RemoveBackground with BiRefNet, MIT -> InvertMask -> JoinImageWithAlpha). Two outputs: _raw.png (opaque, for Homi's check) and _cutout.png (RGBA, the deliverable; Stage 1 already requires transparency on *_cutout*). Prompt rule: ask for 'solid filled shapes, centered, empty space around, on a plain single-colour background, no frame, no border, no text' - a flat single-colour background cuts cleanly; busy backgrounds leave fringes. All four models Apache 2.0 / MIT -> commercial OK. To approve: Homi fills approved_by/approved_date, version becomes 1.0, folder moves from ~/assets/recipes-draft/ to ~/assets/recipes/, then 3 test icons reviewed on a review sheet."
+}
