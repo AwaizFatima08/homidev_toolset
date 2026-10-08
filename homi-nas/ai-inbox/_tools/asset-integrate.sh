@@ -1,5 +1,7 @@
 #!/bin/bash
-# asset-integrate.sh v1.0 (6 Oct 2026) — step 10d (M1-M8): act on Homi's Stage 2 decision
+# asset-integrate.sh v1.1 (8 Oct 2026) — step 10d (M1-M8) + step 11 (A1): act on Homi's Stage 2 decision
+# v1.1 (A1): assets made under the Stability AI Community Licence (Stable Audio sfx/music) add a one-time
+#       "Powered by Stability AI" line to <repo>/assets/ATTRIBUTION.md and print a reminder. Never blocks.
 #   asset-integrate.sh approve <job-folder> <repo> <subfolder>   copy into <repo>/assets/<subfolder>/ + ASSET-REGISTER.md row
 #   asset-integrate.sh reject  <job-folder> "<reason>"           move job to ~/ai-inbox/_rejected/ + reason.txt
 # Only run after Homi decided in chat. Never overwrites, never commits (M8). Exit 0 done, 1 refused.
@@ -63,5 +65,15 @@ for f in "${FILES[@]}"; do
   echo "  added assets/$SUB/$f"
 done
 mkdir -p "$(dirname "$DONE")" && mv "$JD" "$DONE"
+# A1 (step 11): Stability AI Community Licence -> attribution record + reminder (never blocks)
+if printf '%s' "$LICS" | grep -q "Stability AI Community Licence"; then
+  ATT="$REPO/assets/ATTRIBUTION.md"
+  [ -f "$ATT" ] || printf '# Attribution\n\nCredits this app must show. Added by asset-integrate.sh — keep in sync with the About screen / store listing.\n\n' > "$ATT"
+  if ! grep -q "Powered by Stability AI" "$ATT"; then
+    echo "- Sound effects and/or music in this app were made with Stable Audio 3 (Stability AI Community Licence, first added $(date +%F) by job $J). Show **Powered by Stability AI** on the app's About screen or store description." >> "$ATT"
+    echo "  added assets/ATTRIBUTION.md line: Powered by Stability AI"
+  fi
+  echo "REMINDER: this app must show \"Powered by Stability AI\" on its About screen or store description (see assets/ATTRIBUTION.md)."
+fi
 echo "APPROVED: $J -> $DEST (${#FILES[@]} file(s)); register updated; job moved to $DONE"
 echo "Not committed (M8): review with  git -C $REPO status  and commit in the project's normal workflow."

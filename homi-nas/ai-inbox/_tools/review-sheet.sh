@@ -1,5 +1,6 @@
 #!/bin/bash
-# review-sheet.sh v1.0 (5 Oct 2026) — step 10c: one self-contained HTML review page per batch (L1-L7)
+# review-sheet.sh v1.1 (8 Oct 2026) — step 10c: one self-contained HTML review page per batch (L1-L7)
+# v1.1 (step 11, A3): music players loop (hear the join); music cards show BPM + loop length.
 # Usage: review-sheet.sh <project> [job-folder ...]   (no folders = every job waiting in ~/ai-inbox/<project>/)
 # Claude's visual note per job: ~/ai-inbox/<project>/_notes/<job-id>.txt (optional)
 # View only: Homi decides in chat ("approve 1, 3; reject 2: reason"). Re-runs stage1-check.sh (pure checker).
@@ -32,7 +33,7 @@ footer{background:var(--card);border:1px solid var(--line);border-radius:12px;pa
 </style></head><body><main>
 HEAD
 echo "<h1>Asset review — $(printf '%s' "$PROJECT" | esc)</h1>"
-echo "<p class=\"sub\">${#JOBS[@]} job(s) · made $(date '+%d %b %Y, %H:%M') on homi-nas · review-sheet.sh v1.0</p>"
+echo "<p class=\"sub\">${#JOBS[@]} job(s) · made $(date '+%d %b %Y, %H:%M') on homi-nas · review-sheet.sh v1.1</p>"
 n=0
 for D in "${JOBS[@]}"; do
   n=$((n+1)); M="$D/manifest.json"; J=$(basename "$D")
@@ -41,18 +42,19 @@ for D in "${JOBS[@]}"; do
   S1OUT=$("$S1" "$D" "$COMM" 2>&1)
   RES=$(printf '%s\n' "$S1OUT" | grep '^RESULT' | tail -n1)
   case "$RES" in *FAIL*) RC=fail;; *warning*) RC=warn;; *) RC=pass;; esac
+  LOOP=""; [ "$(jq -r .asset_type "$M")" = music ] && LOOP=" loop"
   echo "<section class=\"card\"><div class=\"media\">"
   # pictures, then audio (OGG preferred; WAV only if there is no OGG)
   for f in $(jq -r '.files[].name' "$M"); do
     case "$f" in
       *.png) echo "<img alt=\"$f\" src=\"data:image/png;base64,$(base64 -w0 "$D/$f")\">";;
       *.jpg|*.jpeg) echo "<img alt=\"$f\" src=\"data:image/jpeg;base64,$(base64 -w0 "$D/$f")\">";;
-      *.ogg) echo "<audio controls preload=\"metadata\" src=\"data:audio/ogg;base64,$(base64 -w0 "$D/$f")\"></audio>";;
+      *.ogg) echo "<audio controls$LOOP preload=\"metadata\" src=\"data:audio/ogg;base64,$(base64 -w0 "$D/$f")\"></audio>";;
       *.wav) jq -e '.files[].name|select(endswith(".ogg"))' "$M" >/dev/null || echo "<audio controls src=\"data:audio/wav;base64,$(base64 -w0 "$D/$f")\"></audio>";;
     esac
   done
   echo "</div><div>"
-  echo "<div><span class=\"num\">#$n</span><span class=\"chip\">$(jq -r .asset_type "$M" | esc)</span><span class=\"chip\">$(jq -r .recipe "$M" | esc)</span><span class=\"chip\">commercial_ok: $(jq -r .commercial_ok "$M" | esc)</span></div>"
+  echo "<div><span class=\"num\">#$n</span><span class=\"chip\">$(jq -r .asset_type "$M" | esc)</span><span class=\"chip\">$(jq -r .recipe "$M" | esc)</span><span class=\"chip\">commercial_ok: $(jq -r .commercial_ok "$M" | esc)</span>$(jq -r 'if .postprocess.type == "music" then "<span class=\"chip\">\(.postprocess.bpm) BPM · \(.postprocess.bars) bars · \(.postprocess.loop_sec) s loop (plays on repeat)</span>" else "" end' "$M")</div>"
   echo "<p class=\"k\">Job</p><p class=\"v\">$(printf '%s' "$J" | esc)</p>"
   TXT=$(jq -r '.prompt // .script // empty' "$M")
   [ -n "$TXT" ] && echo "<p class=\"k\">$(jq -r 'if .script then "Script" else "Prompt" end' "$M")</p><p class=\"v\">$(printf '%s' "$TXT" | esc)</p>"

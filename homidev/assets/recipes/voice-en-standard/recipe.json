@@ -1,6 +1,6 @@
 {
   "name": "voice-en-standard",
-  "version": "0.1",
+  "version": "0.2",
   "asset_type": "voice",
   "engine": "kokoro",
   "models": ["kokoro-82m", "kokoro-voice-af_heart", "whisper-small-en"],
@@ -14,10 +14,15 @@
     "trim_silence_keep_s": 0.1,
     "loudness_lufs": -16,
     "true_peak_db": -1.5,
+    "leveller": "limiter",
+    "limiter_db": -2.0,
+    "max_rounds": 4,
+    "tolerance_lu": 0.5,
+    "max_gain_db": 20,
     "formats": ["wav (master, 24 kHz mono 16-bit)", "ogg (Opus 64 kbps, for apps)"],
     "script_check": "faster-whisper small.en, PASS at >= 90% word match; FLAG does not fail the job"
   },
   "approved_by": "Homi",
-  "approved_date": "2026-10-01",
-  "notes": "English voice-overs. Only voices listed in 'choices' are allowed; new voices need Homi's listening approval. Every voice-over is human-reviewed (Stage 2)."
+  "approved_date": "2026-10-08",
+  "notes": "English voice-overs. Only voices listed in 'choices' are allowed; new voices need Homi's listening approval. Every voice-over is human-reviewed (Stage 2). From v0.2 (receiver v0.10, VL1-VL6): levelled by gain + limiter at -2 dB (4x oversampled), re-measured up to 4 rounds, so short clips also reach -16 LUFS; fails if more than +20 dB is needed."
 }

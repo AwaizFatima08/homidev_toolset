@@ -1,4 +1,7 @@
 # receiver.py - homidev asset receiver
+# v0.10 (8 Oct 2026) - step 11a (VL1-VL6): voice recipes with settings.leveller = "limiter" are levelled by
+#   measure -> gain -> 4x-oversampled limiter -> re-measure (up to 4 rounds) instead of one-pass loudnorm,
+#   so short quiet clips reach -16 LUFS. Recipes without "leveller" behave exactly as v0.9.1.
 # v0.9.1 (8 Oct 2026) - step 8c-5 fix: music loudness step writes a WAV first, then encodes the OGG.
 #   Encoding straight from loudnorm (when it falls back to "dynamic") gave OGGs whose header claimed
 #   67 ms more than the audio (Stage 1 FAIL). Records which loudness mode was used.
@@ -37,7 +40,7 @@ from typing import Literal
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-VERSION = "0.9.1"
+VERSION = "0.10"
 HOME = Path.home()
 ASSETS = HOME / "assets"
 JOBS_DIR = ASSETS / "jobs"
@@ -497,9 +500,16 @@ def run_kokoro(job_dir: Path, req: dict, recipe: dict) -> dict:
                 VOICE_TIMEOUT_S, "Kokoro speech")
         # 2. trim silence at both ends (keep a little), normalise loudness -> WAV master
         trim = f"silenceremove=start_periods=1:start_threshold=-50dB:start_silence={keep}"
-        chain = f"{trim},areverse,{trim},areverse,loudnorm=I={lufs}:TP={tp}:LRA=11"
-        run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", raw, "-af", chain,
-                 "-ar", "24000", "-ac", "1", "-c:a", "pcm_s16le", wav], 120, "trim + loudness")
+        post = None
+        if s.get("leveller") == "limiter":
+            trimmed = Path(tmp) / "trimmed.wav"
+            run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", raw, "-af",
+                     f"{trim},areverse,{trim},areverse", "-c:a", "pcm_f32le", trimmed], 120, "trim")
+            post = limiter_level(trimmed, wav, s)
+        else:
+            chain = f"{trim},areverse,{trim},areverse,loudnorm=I={lufs}:TP={tp}:LRA=11"
+            run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", raw, "-af", chain,
+                     "-ar", "24000", "-ac", "1", "-c:a", "pcm_s16le", wav], 120, "trim + loudness")
     # 3. small app copy (Opus in OGG)
     run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", wav, "-c:a", "libopus", "-b:a", "64k", ogg],
             120, "OGG encode")
@@ -512,8 +522,48 @@ def run_kokoro(job_dir: Path, req: dict, recipe: dict) -> dict:
     for f in (wav, ogg):
         files.append({"name": f.name, "sha256": sha256(f), "format": f.suffix.lstrip("."),
                       "size": f.stat().st_size, **audio_info(f)})
-    return {"inputs": inputs, "files": files, "check": check,
-            "tool": "Kokoro 0.9.4 (CPU) + ffmpeg + faster-whisper small.en"}
+    result = {"inputs": inputs, "files": files, "check": check,
+              "tool": "Kokoro 0.9.4 (CPU) + ffmpeg + faster-whisper small.en"}
+    if post:
+        result["postprocess"] = post
+    return result
+
+
+def measure_loudness(path: Path) -> tuple:
+    """Integrated loudness (LUFS) and true peak (dBFS) via ffmpeg ebur128."""
+    meter = run_cmd(["ffmpeg", "-nostdin", "-hide_banner", "-i", path, "-af", "ebur128=peak=true",
+                     "-f", "null", "-"], 60, "loudness measurement").stderr
+    lufs = re.findall(r"I:\s+(-?[\d.]+|-inf) LUFS", meter)
+    peak = re.findall(r"Peak:\s+(-?[\d.]+|-inf) dBFS", meter)
+    if not lufs or lufs[-1] == "-inf" or float(lufs[-1]) < -70:
+        raise RuntimeError("voice levelling: the speech is silent or nearly silent")
+    return float(lufs[-1]), (float(peak[-1]) if peak and peak[-1] != "-inf" else None)
+
+
+def limiter_level(src: Path, dst: Path, s: dict) -> dict:
+    """VL1-VL2 (locked 8 Oct 2026): gain to the target, a limiter at limiter_db (run at 4x the
+    sample rate so peaks between samples are caught), measure again; up to max_rounds rounds,
+    stop within tolerance. Fails if more than max_gain_db is needed or the target is not reached."""
+    target, lim_db = s.get("loudness_lufs", -16), s.get("limiter_db", -2.0)
+    rounds, tol, max_gain = s.get("max_rounds", 4), s.get("tolerance_lu", 0.5), s.get("max_gain_db", 20)
+    start, _ = measure_loudness(src)
+    gain = target - start
+    for n in range(1, rounds + 1):
+        if gain > max_gain:
+            raise RuntimeError(f"voice levelling: needs {gain:+.1f} dB (limit +{max_gain} dB) - speech far too quiet")
+        run_cmd(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", src, "-af",
+                 f"volume={gain:.2f}dB,aresample=96000,alimiter=limit={10 ** (lim_db / 20):.4f}"
+                 f":attack=5:release=50:level=disabled,aresample=24000",
+                 "-ac", "1", "-c:a", "pcm_s16le", dst], 120, "voice limiter")
+        lufs, peak = measure_loudness(dst)
+        if abs(lufs - target) <= tol:
+            return {"type": "voice-limiter", "input_lufs": start, "gain_db": round(gain, 2),
+                    "rounds": n, "loudness_lufs": lufs, "true_peak_db": peak, "limiter_db": lim_db}
+        last_gain, gain = gain, gain + target - lufs
+    if abs(lufs - target) <= 2 * tol:
+        return {"type": "voice-limiter", "input_lufs": start, "gain_db": round(last_gain, 2),
+                "rounds": rounds, "loudness_lufs": lufs, "true_peak_db": peak, "limiter_db": lim_db}
+    raise RuntimeError(f"voice levelling: reached {lufs} LUFS after {rounds} rounds (target {target})")
 
 
 def ollama_loaded() -> list:
